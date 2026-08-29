@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RoamLocal</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div id="nav"></div>
+
+  <section class="hero">
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+      <div class="badge" id="heroBadge"></div>
+      <h1 id="heroTitle"></h1>
+      <p id="heroSub"></p>
+      <div class="search-bar">
+        <input type="text" id="heroSearch" />
+      </div>
+      <div class="hero-btns">
+        <a href="planner.html" class="btn-sunset" id="cta1"></a>
+        <a href="map.html" class="btn-outline" id="cta2"></a>
+      </div>
+    </div>
+  </section>
+
+  <div class="stats-wrap">
+    <div class="stats">
+      <div><div class="num">1,284</div><div class="label" id="s1"></div></div>
+      <div><div class="num">347</div><div class="label" id="s2"></div></div>
+      <div><div class="num">18.4t</div><div class="label" id="s3"></div></div>
+      <div><div class="num">5,621</div><div class="label" id="s4"></div></div>
+    </div>
+  </div>
+
+  <section class="section">
+    <h2 class="section-title" id="sampleTitle"></h2>
+    <p class="section-sub" id="sampleSub"></p>
+    <div class="text-center"><span class="ai-label" id="sampleLabel"></span></div>
+    <div class="grid-3" id="sampleDays" style="margin-top:2rem"></div>
+    <p class="text-center mt-4"><a href="planner.html" style="font-weight:600;color:var(--forest-700)" id="sampleLink"></a></p>
+  </section>
+
+  <section class="section" id="why" style="background:var(--forest-50);max-width:none;padding:4rem 1rem">
+    <div style="max-width:1120px;margin:0 auto">
+      <h2 class="section-title" id="whyTitle"></h2>
+      <p class="section-sub" id="whySub"></p>
+      <div class="why-grid" id="whyGrid"></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2 class="section-title" id="featTitle"></h2>
+    <p class="section-sub" id="featSub"></p>
+    <div class="grid-3" id="featured"></div>
+  </section>
+
+  <section class="section bg-sand" style="max-width:none">
+    <div style="max-width:1120px;margin:0 auto">
+      <h2 class="section-title" id="voicesTitle"></h2>
+      <div class="grid-3" style="margin-top:2rem">
+        <div class="testimonial">
+          <div class="testimonial-header">
+            <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&q=80" alt="" />
+            <div><strong>Elena M.</strong><div style="font-size:0.75rem;color:#64748b">🇪🇸 Traveler</div></div>
+          </div>
+          <p style="font-style:italic;font-size:0.9rem;color:var(--forest-700)">“I finally found places that felt real — and money went to family-run spots, not only big hotels.”</p>
+          <div class="stars">★★★★★</div>
+        </div>
+        <div class="testimonial">
+          <div class="testimonial-header">
+            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&q=80" alt="" />
+            <div><strong>Made Wijaya</strong><div style="font-size:0.75rem;color:#64748b">🇮🇩 Local Guide</div></div>
+          </div>
+          <p style="font-style:italic;font-size:0.9rem;color:var(--forest-700)">“Visitors now come for rice fields and real conversations — not only the same five temples.”</p>
+          <div class="stars">★★★★★</div>
+        </div>
+        <div class="testimonial">
+          <div class="testimonial-header">
+            <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&q=80" alt="" />
+            <div><strong>Lakshmi R.</strong><div style="font-size:0.75rem;color:#64748b">🇮🇳 Host · Vijayawada</div></div>
+          </div>
+          <p style="font-style:italic;font-size:0.9rem;color:var(--forest-700)">“Our home kitchen class hosts guests who care about the food and the story. That is enough.”</p>
+          <div class="stars">★★★★★</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta">
+    <h2 id="ctaTitle"></h2>
+    <p id="ctaSub"></p>
+    <div class="cta-btns">
+      <a href="planner.html" class="btn-sunset" id="cta3"></a>
+      <a href="map.html" class="btn-ghost" id="cta4"></a>
+    </div>
+  </section>
+
+  <div id="sos"></div>
+  <div id="footer"></div>
+
+  <script src="js/i18n.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    document.getElementById("nav").innerHTML = navHTML("home");
+    startRotatingBackground(".hero");
+    // also soft body shift
+    startBodyAtmosphere();
+    document.getElementById("footer").innerHTML = footerHTML();
+    if (typeof applyI18n === "function") applyI18n();
+        document.title = t("brand") + " – " + t("hero_title");
+
+    document.getElementById("heroBadge").textContent = t("hero_badge");
+    document.getElementById("heroTitle").textContent = t("hero_title");
+    document.getElementById("heroSub").textContent = t("hero_sub");
+    document.getElementById("heroSearch").placeholder = t("hero_search");
+    document.getElementById("cta1").textContent = t("hero_cta1") + " →";
+    document.getElementById("cta2").textContent = t("hero_cta2");
+    document.getElementById("s1").textContent = t("stats_biz");
+    document.getElementById("s2").textContent = t("stats_gems");
+    document.getElementById("s3").textContent = t("stats_carbon");
+    document.getElementById("s4").textContent = t("stats_travelers");
+    document.getElementById("sampleTitle").textContent = t("sample_title");
+    document.getElementById("sampleSub").textContent = t("sample_sub");
+    document.getElementById("sampleLabel").textContent = t("sample_label");
+    document.getElementById("sampleLink").textContent = t("sample_link") + " →";
+    document.getElementById("whyTitle").textContent = t("why_title");
+    document.getElementById("whySub").textContent = t("why_sub");
+    document.getElementById("featTitle").textContent = t("featured");
+    document.getElementById("featSub").textContent = t("featured_sub");
+    document.getElementById("voicesTitle").textContent = t("voices");
+    document.getElementById("ctaTitle").textContent = t("cta_title");
+    document.getElementById("ctaSub").textContent = t("cta_sub");
+    document.getElementById("cta3").textContent = t("hero_cta1") + " →";
+    document.getElementById("cta4").textContent = t("hero_cta2");
+
+    document.getElementById("whyGrid").innerHTML = [
+      ["✨", "why1", "why1d"], ["📍", "why2", "why2d"], ["📉", "why3", "why3d"],
+      ["👥", "why4", "why4d"], ["🌿", "why5", "why5d"], ["🛡️", "why6", "why6d"]
+    ].map(([icon, a, b]) => `
+      <div class="why-card"><div class="why-icon">${icon}</div><h3>${t(a)}</h3><p>${t(b)}</p></div>
+    `).join("");
+
+    document.getElementById("sampleDays").innerHTML = SAMPLE_ITINERARY.map(day => `
+      <div class="day-card">
+        <div class="day-header"><small>${t("day")} ${day.day}</small><div style="font-weight:600;font-size:1.1rem">${day.title}</div></div>
+        <div class="day-body">
+          ${day.activities.slice(0,2).map(a => `
+            <div class="activity">
+              <div class="activity-time">${a.time}</div>
+              <div>
+                <div style="font-weight:500;font-size:0.9rem">${a.name}</div>
+                <div style="font-size:0.75rem;color:#64748b">${a.duration} · ${price(a.cost)} · ${t("crowd")}: ${crowdLabel(a.crowdLevel)}</div>
+              </div>
+            </div>
+          `).join("")}
+          <div style="border-top:1px solid var(--forest-50);padding-top:0.75rem;display:flex;justify-content:space-between;font-size:0.85rem">
+            <span>${t("total")} ~${price(day.totalCost)}</span>
+            <span class="tag tag-green">${t("sustain_label")} ${day.sustainabilityScore}</span>
+          </div>
+        </div>
+      </div>
+    `).join("");
+
+    document.getElementById("featured").innerHTML = EXPERIENCES.slice(0, 9).map(renderExpCard).join("");
+  </script>
+<script src="js/chatbot.js"></script>
+</body>
+</html>

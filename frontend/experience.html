@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Experience – RoamLocal</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div id="nav"></div>
+  <div id="content" style="padding:1.5rem 1rem 3rem"></div>
+  <div id="sos"></div>
+  <div id="footer"></div>
+  <script src="js/i18n.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    document.getElementById("nav").innerHTML = navHTML("explore");
+    document.getElementById("footer").innerHTML = footerHTML();
+    if (typeof applyI18n === "function") applyI18n();
+        startBodyAtmosphere();
+    document.getElementById("footer").innerHTML = footerHTML();
+    if (typeof applyI18n === "function") applyI18n();
+    
+    const params = new URLSearchParams(location.search);
+    const exp = getExp(params.get("id")) || EXPERIENCES[0];
+    document.title = exp.name + " – RoamLocal";
+
+    const guide = (typeof GUIDES !== 'undefined') ? GUIDES.find(g => g.experiences && g.experiences.includes(exp.id)) : null;
+
+    document.getElementById("content").innerHTML = `
+      <div style="max-width:1120px;margin:0 auto">
+        <a href="explore.html" style="font-size:0.875rem;color:var(--forest-600)">← Back to experiences</a>
+      </div>
+      <div class="detail-grid" style="margin-top:1rem">
+        <div>
+          <div class="detail-img"><img src="${exp.image}" alt="${exp.name}"
+      onerror="this.onerror=null;this.src='https://picsum.photos/seed/'+encodeURIComponent(exp.id)+'/900/560';" /></div>
+          <div style="margin-top:1.25rem">
+            <span class="card-type">${exp.type}</span>
+            <span class="tag tag-green" style="margin-left:0.5rem">Impact ${exp.localImpactScore}</span>
+            <span class="tag ${crowdClass(exp.crowdLevel)}">${exp.crowdLevel} crowd</span>
+            <h1 style="font-size:1.75rem;margin-top:0.5rem">${exp.name}</h1>
+            <p style="color:#64748b;margin-top:0.25rem">📍 ${exp.location}, ${exp.city}</p>
+          </div>
+          <div class="panel" style="margin-top:1.25rem">
+            <h2 style="font-size:1.05rem;margin-bottom:0.5rem">About this experience</h2>
+            <p style="color:var(--forest-700)">${exp.description}</p>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1rem">
+            <div class="panel">
+              <h3 style="font-size:0.95rem;margin-bottom:0.75rem">🌿 Local Impact Score</h3>
+              <div style="font-size:2.5rem;font-weight:700;color:var(--forest-700)">${exp.localImpactScore}<span style="font-size:1rem;font-weight:400;color:#64748b"> / 100</span></div>
+              <ul style="font-size:0.85rem;color:#64748b;margin-top:0.75rem;list-style:none">
+                <li>• Local ownership: ${exp.localOwnership ? "Yes" : "Partial"}</li>
+                <li>• Sustainability: ${exp.sustainabilityScore}</li>
+                <li>• Distance from major crowds: High</li>
+                <li>• Supports small businesses: Yes</li>
+              </ul>
+            </div>
+            <div class="panel">
+              <h3 style="font-size:0.95rem;margin-bottom:0.75rem">🛡️ Practical info</h3>
+              <ul style="font-size:0.85rem;color:#64748b;list-style:none">
+                <li style="margin-bottom:0.4rem">⏱ ${exp.duration} · ${exp.openingHours}</li>
+                <li style="margin-bottom:0.4rem">♿ ${exp.accessibility}</li>
+                <li style="margin-bottom:0.4rem">⚠️ ${exp.safetyInfo}</li>
+                <li>🌍 Carbon: ${exp.carbonFootprint}</li>
+              </ul>
+            </div>
+          </div>
+          <div class="warn">Sample data for demo. Report incorrect or unsafe information via the button on the right. Prices are illustrative only.</div>
+        </div>
+        <div>
+          <div class="book-card" id="bookCard">
+            <div class="price">$${price(exp.price)} <span style="font-size:0.9rem;font-weight:400;color:#64748b">per person</span></div>
+            <p style="font-size:0.75rem;color:#64748b;margin-bottom:1.25rem">Sample price · Demo booking only</p>
+            <button class="btn-primary" style="width:100%;justify-content:center;padding:0.85rem" onclick="showBookForm()">Request / Book experience</button>
+            ${guide ? `
+              <div style="margin-top:1.5rem;padding-top:1.25rem;border-top:1px solid var(--forest-100)">
+                <p style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;color:#64748b;margin-bottom:0.75rem">Local guide</p>
+                <div class="flex gap-3 items-center">
+                  <img src="${guide.photo}" style="width:48px;height:48px;border-radius:50%;object-fit:cover" />
+                  <div>
+                    <strong>${guide.name}</strong>
+                    <div style="font-size:0.75rem;color:#64748b">★ ${guide.rating} · ${guide.reviews} reviews ${guide.verified ? "· Verified" : ""}</div>
+                  </div>
+                </div>
+              </div>
+            ` : ""}
+            <button style="margin-top:1.25rem;width:100%;background:none;border:none;font-size:0.75rem;color:#64748b;cursor:pointer;text-decoration:underline" onclick="alert('Thank you. In a full product this would open a report form.')">Report incorrect or unsafe information</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    function showBookForm() {
+      document.getElementById("bookCard").innerHTML = `
+        <div class="price">$${price(exp.price)}</div>
+        <p style="font-size:0.75rem;color:#64748b;margin-bottom:1rem">Demo booking form</p>
+        <form onsubmit="return book(event)">
+          <div class="form-group"><input required placeholder="Your name" id="bname" /></div>
+          <div class="form-group"><input required type="email" placeholder="Email" id="bemail" /></div>
+          <div class="form-group"><input required type="date" id="bdate" /></div>
+          <div class="form-group"><textarea placeholder="Notes or accessibility needs" rows="2"></textarea></div>
+          <button type="submit" class="btn-primary" style="width:100%;justify-content:center;padding:0.75rem">Submit request</button>
+          <button type="button" onclick="location.reload()" style="width:100%;margin-top:0.5rem;background:none;border:none;font-size:0.85rem;color:#64748b;cursor:pointer">Cancel</button>
+        </form>
+      `;
+    }
+    async function book(e) {
+      e.preventDefault();
+      const notes = (document.querySelector("#bookCard textarea") || {}).value || "";
+      const date = (document.getElementById("bdate") || {}).value || "";
+      try {
+        const res = await fetch("/api/bookings", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            experience_id: exp.id,
+            guide_id: exp.guideId || (exp.guide && exp.guide.id) || null,
+            date,
+            guests: 1,
+            notes
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed");
+        document.getElementById("bookCard").innerHTML = `
+          <div style="text-align:center;padding:1.5rem 0">
+            <div style="font-size:2.5rem">✅</div>
+            <strong style="font-size:1.1rem">Request sent!</strong>
+            <p style="font-size:0.85rem;color:#64748b;margin-top:0.5rem">Booking #${data.booking_id} saved. Local host will respond.</p>
+          </div>
+        `;
+      } catch (err) {
+        document.getElementById("bookCard").innerHTML = `
+          <div style="text-align:center;padding:1.5rem 0">
+            <div style="font-size:2.5rem">✅</div>
+            <strong style="font-size:1.1rem">Request recorded (offline)</strong>
+            <p style="font-size:0.85rem;color:#64748b;margin-top:0.5rem">${err.message}</p>
+          </div>
+        `;
+      }
+      return false;
+    }
+  </script>
+<script src="js/chatbot.js"></script>
+</body>
+</html>

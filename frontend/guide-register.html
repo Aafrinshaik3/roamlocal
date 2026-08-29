@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Register as Guide – Earn – RoamLocal</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div id="nav"></div>
+  <div class="page-header text-center">
+    <h1>Register as a Local Guide</h1>
+    <p>Offer experiences · Get bookings · Keep most of what travelers pay</p>
+  </div>
+
+  <div style="max-width:560px;margin:0 auto;padding:0 1rem 3rem">
+    <div class="form-card" id="regCard">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.75rem;margin-bottom:1.5rem;text-align:center;font-size:0.8rem">
+        <div style="background:var(--forest-50);padding:0.75rem;border-radius:12px"><strong style="display:block;font-size:1.1rem;color:var(--forest-700)">80%+</strong>You keep</div>
+        <div style="background:var(--forest-50);padding:0.75rem;border-radius:12px"><strong style="display:block;font-size:1.1rem;color:var(--forest-700)">Free</strong>to list</div>
+        <div style="background:var(--forest-50);padding:0.75rem;border-radius:12px"><strong style="display:block;font-size:1.1rem;color:var(--forest-700)">Global</strong>travelers</div>
+      </div>
+      <form onsubmit="return submitGuide(event)">
+        <div class="form-group"><label>Full name</label><input required placeholder="Your name" id="gname" /></div>
+        <div class="form-group"><label>Email</label><input required type="email" placeholder="you@example.com" id="gemail" /></div>
+        <div class="form-group"><label>Phone (WhatsApp ok)</label><input placeholder="+91 …" /></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+          <div class="form-group">
+            <label>Country</label>
+            <select id="gcountry" required>
+              <option value="">Select…</option>
+              <option>India</option><option>Indonesia</option><option>Japan</option>
+              <option>Mexico</option><option>Morocco</option><option>Peru</option>
+              <option>Italy</option><option>Thailand</option><option>Other</option>
+            </select>
+          </div>
+          <div class="form-group"><label>City / area</label><input required placeholder="e.g. Vijayawada" id="gcity" /></div>
+        </div>
+        <div class="form-group">
+          <label>Languages you speak</label>
+          <input placeholder="e.g. Telugu, Hindi, English" id="glangs" />
+        </div>
+        <div class="form-group">
+          <label>What can you offer?</label>
+          <div class="chip-group" id="offerChips">
+            <button type="button" class="chip" onclick="this.classList.toggle('active')">Walking tour</button>
+            <button type="button" class="chip" onclick="this.classList.toggle('active')">Cooking / food</button>
+            <button type="button" class="chip" onclick="this.classList.toggle('active')">Craft / artisan</button>
+            <button type="button" class="chip" onclick="this.classList.toggle('active')">Nature / trek</button>
+            <button type="button" class="chip" onclick="this.classList.toggle('active')">Homestay / meal</button>
+            <button type="button" class="chip" onclick="this.classList.toggle('active')">Culture / temple</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Price per hour (your currency)</label>
+          <input type="number" min="1" placeholder="e.g. 15" id="gprice" />
+        </div>
+        <div class="form-group">
+          <label>Short story about you</label>
+          <textarea rows="3" placeholder="Who you are and why travelers should book you…" id="gbio"></textarea>
+        </div>
+        <button type="submit" class="btn-primary" style="width:100%;justify-content:center;padding:0.9rem">Submit registration</button>
+        <p style="font-size:0.75rem;color:#64748b;margin-top:0.75rem;text-align:center">Applications are saved to the SQLite backend. Verification would follow in production.</p>
+      </form>
+    </div>
+  </div>
+  <div id="sos"></div>
+  <div id="footer"></div>
+  <script src="js/i18n.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    document.getElementById("nav").innerHTML = navHTML("guides");
+    document.getElementById("footer").innerHTML = footerHTML();
+    if (typeof applyI18n === "function") applyI18n();
+        startBodyAtmosphere();
+    async function submitGuide(e) {
+      e.preventDefault();
+      const name = document.getElementById("gname").value;
+      const email = document.getElementById("gemail").value;
+      const city = document.getElementById("gcity").value;
+      const country = document.getElementById("gcountry").value;
+      const languages = (document.getElementById("glangs").value || "").split(",").map(s => s.trim()).filter(Boolean);
+      const bio = document.getElementById("gbio").value;
+      const price = parseFloat(document.getElementById("gprice").value) || 15;
+      const chips = Array.from(document.querySelectorAll(".chip.active")).map(c => c.textContent.trim());
+      try {
+        const res = await fetch("/api/guides/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, email, country, city, languages, specialties: chips, bio, price_per_hour: price })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed");
+        try {
+          const u = JSON.parse(localStorage.getItem("roam_user") || "{}");
+          u.role = "guide";
+          if (!u.name) u.name = name;
+          if (!u.email) u.email = email;
+          localStorage.setItem("roam_user", JSON.stringify(u));
+        } catch(e) {}
+        document.getElementById("regCard").innerHTML = `
+          <div class="success-box">
+            <div style="font-size:2.5rem">🎉</div>
+            <h2 style="margin:0.5rem 0;color:var(--forest-800)">Welcome, ${name}!</h2>
+            <p style="color:#065f46;margin-bottom:1rem">Your guide application for <strong>${city}, ${country}</strong> was saved (id: ${data.id}).</p>
+            <p style="font-size:0.9rem;color:#64748b;margin-bottom:1.25rem">We will review and list you so travelers can book and you can earn.</p>
+            <a href="guide-dashboard.html" class="btn-primary" style="padding:0.75rem 1.25rem">Open guide dashboard</a>
+            <a href="guides.html" style="display:block;margin-top:0.75rem;font-size:0.85rem;color:var(--forest-700)">See public guides list</a>
+          </div>`;
+      } catch (err) {
+        alert("Could not save (is the backend running?): " + err.message);
+      }
+      return false;
+    }
+  </script>
+<script src="js/chatbot.js"></script>
+</body>
+</html>

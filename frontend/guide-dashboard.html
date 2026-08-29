@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Guide Dashboard – RoamLocal</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div id="nav"></div>
+  <div class="page-header">
+    <h1 data-i18n="guide_dashboard">Guide dashboard</h1>
+    <p>Bookings, earnings overview, and profile for hosts</p>
+  </div>
+  <div style="max-width:960px;margin:0 auto;padding:0 1rem 3rem" id="dashRoot">
+    <p style="color:#64748b">Loading…</p>
+  </div>
+  <div id="sos"></div>
+  <div id="footer"></div>
+  <script src="js/i18n.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    document.getElementById("nav").innerHTML = navHTML("");
+    document.getElementById("footer").innerHTML = footerHTML();
+    if (typeof applyI18n === "function") applyI18n();
+        startBodyAtmosphere();
+
+    const user = getLoggedInUser();
+    const root = document.getElementById("dashRoot");
+    if (!user) {
+      root.innerHTML = `<p>Please sign in as a guide.</p><a class="btn-primary" href="login.html">Sign in</a>`;
+    } else {
+      loadDash();
+    }
+
+    async function loadDash() {
+      let bookings = [];
+      let apps = 0;
+      try {
+        const r = await fetch("/api/bookings");
+        bookings = await r.json();
+      } catch (e) {}
+      try {
+        const s = await fetch("/api/stats");
+        const st = await s.json();
+        apps = st.guide_applications || 0;
+      } catch (e) {}
+
+      const pending = bookings.filter(b => b.status === "pending").length;
+      const total = bookings.length;
+      root.innerHTML = `
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1rem;margin-bottom:1.5rem">
+          <div class="guide-dash-stat"><div class="num">${total}</div><div style="font-size:0.8rem;color:#64748b">Booking requests</div></div>
+          <div class="guide-dash-stat"><div class="num">${pending}</div><div style="font-size:0.8rem;color:#64748b">Pending</div></div>
+          <div class="guide-dash-stat"><div class="num">${apps}</div><div style="font-size:0.8rem;color:#64748b">Guide applications</div></div>
+          <div class="guide-dash-stat"><div class="num">80%+</div><div style="font-size:0.8rem;color:#64748b">You keep (demo)</div></div>
+        </div>
+        <div class="form-card" style="margin-bottom:1.25rem">
+          <h3 style="margin:0 0 0.5rem;color:var(--forest-800)">Welcome, ${user.name || "Guide"}</h3>
+          <p style="font-size:0.9rem;color:#64748b;margin:0">${user.email || ""} · Role: guide</p>
+          <div style="margin-top:1rem;display:flex;flex-wrap:wrap;gap:0.5rem">
+            <a href="guide-register.html" class="btn-primary" style="padding:0.55rem 1rem">Update listing</a>
+            <a href="guides.html" class="btn-outline" style="padding:0.55rem 1rem">View public guides</a>
+            <a href="profile.html" class="btn-outline" style="padding:0.55rem 1rem">Profile & language</a>
+          </div>
+        </div>
+        <h3 style="margin:0 0 0.75rem;color:var(--forest-800)">Recent booking requests</h3>
+        <div class="form-card" style="padding:0;overflow:hidden">
+          ${bookings.length ? `
+            <table style="width:100%;border-collapse:collapse;font-size:0.85rem">
+              <thead><tr style="background:var(--forest-50);text-align:left">
+                <th style="padding:0.65rem">ID</th>
+                <th style="padding:0.65rem">Experience</th>
+                <th style="padding:0.65rem">Date</th>
+                <th style="padding:0.65rem">Status</th>
+              </tr></thead>
+              <tbody>
+                ${bookings.slice(0,15).map(b => `
+                  <tr style="border-top:1px solid #e5e7eb">
+                    <td style="padding:0.65rem">#${b.id}</td>
+                    <td style="padding:0.65rem">${b.experience_id || "—"}</td>
+                    <td style="padding:0.65rem">${b.date || "—"}</td>
+                    <td style="padding:0.65rem"><span class="tag tag-amber">${b.status || "pending"}</span></td>
+                  </tr>`).join("")}
+              </tbody>
+            </table>` : `<p style="padding:1.25rem;color:#64748b;margin:0">No bookings yet. When travelers request experiences, they appear here.</p>`}
+        </div>
+        <div class="a11y-note" style="margin-top:1.5rem">
+          <strong>Tip</strong>
+          <span>Respond to pending requests quickly. Keep your phone number up to date so travelers can reach you.</span>
+        </div>
+      `;
+    }
+  </script>
+  <script src="js/chatbot.js"></script>
+</body>
+</html>

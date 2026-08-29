@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AI Journey Builder – RoamLocal</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body class="edge-theme">
+  <div id="nav"></div>
+  <div class="page-header text-center">
+    <div class="badge" style="background:var(--forest-100);color:var(--forest-700);border:none">✨ AI Journey Builder</div>
+    <h1 style="margin-top:0.75rem" id="pTitle">Build ur journey</h1>
+    <p id="pSub">Answer a few questions. We create a day-by-day journey focused on hidden gems, history, and local impact.</p>
+  </div>
+
+  <div style="max-width:640px;margin:0 auto;padding:0 1rem 3rem">
+    <div id="step-intro" class="form-card text-center anim-fade">
+      <div style="font-size:3rem;margin-bottom:1rem">🌿</div>
+      <h2 style="font-size:1.25rem;margin-bottom:1rem">How it works</h2>
+      <ul style="text-align:left;max-width:380px;margin:0 auto 1.5rem;font-size:0.9rem;color:var(--forest-700);list-style:none">
+        <li style="margin-bottom:0.75rem">① Destination, budget, days and interests (including history & monuments)</li>
+        <li style="margin-bottom:0.75rem">② Mobility needs and sustainability preference</li>
+        <li>③ A personalized journey (demo uses sample data)</li>
+      </ul>
+      <p class="ai-label">AI-generated content labeled · Sample data only</p>
+      <button class="btn-primary" style="margin-top:1.5rem;padding:0.85rem 2rem" onclick="showStep('form')">Start your journey →</button>
+    </div>
+
+    <div id="step-form" class="form-card hidden anim-fade">
+      <div class="form-group">
+        <label>Destination</label>
+        <input type="text" id="dest" value="Vijayawada, India" placeholder="City or region" list="destList" />
+        <datalist id="destList">
+          <option value="Vijayawada, India"></option>
+          <option value="Bali, Indonesia"></option>
+          <option value="Kyoto, Japan"></option>
+          <option value="Oaxaca, Mexico"></option>
+          <option value="Fes, Morocco"></option>
+          <option value="Cusco, Peru"></option>
+          <option value="Florence / Chianti, Italy"></option>
+          <option value="Chiang Mai, Thailand"></option>
+          <option value="Hampi, India"></option>
+        </datalist>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+        <div class="form-group">
+          <label>Budget</label>
+          <div class="budget-btns" id="budgetBtns">
+            <button type="button" data-v="budget" onclick="setBudget(this)">budget</button>
+            <button type="button" data-v="mid" class="active" onclick="setBudget(this)">mid</button>
+            <button type="button" data-v="comfort" onclick="setBudget(this)">comfort</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Duration (days)</label>
+          <select id="duration"><option>2</option><option selected>3</option><option>4</option><option>5</option><option>7</option></select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Interests</label>
+          <div class="chip-group" id="interests">
+          <button type="button" class="chip" onclick="this.classList.toggle('active')">Culture</button>
+          <button type="button" class="chip active" onclick="this.classList.toggle('active')">Historical places</button>
+          <button type="button" class="chip active" onclick="this.classList.toggle('active')">Monuments</button>
+          <button type="button" class="chip" onclick="this.classList.toggle('active')">Monumentals</button>
+          <button type="button" class="chip" onclick="this.classList.toggle('active')">Food</button>
+          <button type="button" class="chip" onclick="this.classList.toggle('active')">Nature</button>
+          <button type="button" class="chip" onclick="this.classList.toggle('active')">Adventure</button>
+          <button type="button" class="chip" onclick="this.classList.toggle('active')">Artisan crafts</button>
+          <button type="button" class="chip" onclick="this.classList.toggle('active')">Family-friendly</button>
+          <button type="button" class="chip" onclick="this.classList.toggle('active')">Quiet / low-crowd</button>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+        <div class="form-group">
+          <label>Mobility needs</label>
+          <select id="mobility">
+            <option value="standard">Standard walking</option>
+            <option value="limited">Limited walking / seated preferred</option>
+            <option value="wheelchair">Wheelchair accessible where possible</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Sustainability priority</label>
+          <select id="sustain">
+            <option value="high">High – prioritize local & low-impact</option>
+            <option value="balanced" selected>Balanced</option>
+            <option value="flexible">Flexible</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Preferred transport</label>
+          <select id="transport">
+            <option value="mixed">Mixed (walk + local transit)</option>
+            <option value="walk">Mostly walking</option>
+            <option value="transit">Public transit / metro / bus</option>
+            <option value="taxi">Taxi / rideshare</option>
+            <option value="car">Private car / rental</option>
+            <option value="bike">Bicycle / e-bike</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>♿ Accessibility needs</label>
+          <select id="a11yNeed">
+            <option value="none">No special requirements</option>
+            <option value="limited">Limited walking / prefer seated</option>
+            <option value="wheelchair">Wheelchair-accessible where possible</option>
+            <option value="visual">Visual assistance preferred</option>
+            <option value="hearing">Hearing assistance preferred</option>
+          </select>
+        </div>
+      </div>
+      <div class="flex gap-2" style="margin-top:0.5rem">
+        <button class="btn-outline" style="padding:0.75rem 1.25rem" onclick="showStep('intro')">← Back</button>
+        <button class="btn-primary" style="flex:1;justify-content:center;padding:0.75rem" onclick="generate()">Build ur journey ✨</button>
+      </div>
+    </div>
+
+    <div id="step-loading" class="form-card text-center hidden" style="padding:4rem 2rem">
+      <div class="spinner"></div>
+      <h2 style="font-size:1.2rem;margin-top:1rem">Crafting your journey…</h2>
+      <p style="color:#64748b;font-size:0.9rem;margin-top:0.5rem">Matching history, monuments, low-crowd options and local impact</p>
+      <p class="ai-label" style="margin-top:1rem">Fetching real places for your destination…</p>
+    </div>
+
+    <div id="step-result" class="hidden anim-fade">
+      <div class="warn">⚠️ Places are loaded from OpenStreetMap when available. Prices and times are estimates.</div>
+      <div class="flex justify-between flex-wrap gap-2 items-center mb-4">
+        <div>
+          <h2 style="font-size:1.35rem" id="resultTitle">Your journey</h2>
+          <p style="font-size:0.85rem;color:#64748b" id="resultMeta"></p>
+        </div>
+        <div class="flex gap-2 flex-wrap">
+          <button class="btn-outline" style="padding:0.5rem 1rem;font-size:0.85rem" onclick="generate()">↻ Regenerate</button>
+          <a href="map.html" class="btn-primary" style="font-size:0.85rem">View on map</a>
+        </div>
+      </div>
+      <div id="journeyResult"></div>
+      <button class="btn-outline" style="margin-top:1rem;padding:0.75rem 1.25rem" onclick="showStep('form')">✎ Edit preferences</button>
+    </div>
+  </div>
+
+  <div id="footer"></div>
+  <script src="js/i18n.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    document.getElementById("nav").innerHTML = navHTML("planner");
+    document.getElementById("footer").innerHTML = footerHTML();
+    if (typeof applyI18n === "function") applyI18n();
+        startBodyAtmosphere();
+    document.title = "Build ur journey – RoamLocal";
+
+    let budget = "mid";
+    function showStep(name) {
+      ["intro","form","loading","result"].forEach(s => {
+        document.getElementById("step-" + s).classList.toggle("hidden", s !== name);
+      });
+    }
+    function setBudget(btn) {
+      budget = btn.dataset.v;
+      document.querySelectorAll("#budgetBtns button").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+    }
+    function selectedInterests() {
+      return [...document.querySelectorAll("#interests .chip.active")].map(c => c.textContent.trim());
+    }
+    function buildJourneyDays(dest, interests) {
+      const days = SAMPLE_ITINERARY.map(d => JSON.parse(JSON.stringify(d)));
+      const hist = interests.some(i => /historic|monument/i.test(i));
+      if (hist) {
+        days[0].title = "Arrival · Local flavors & first history stop";
+        days[0].activities[2] = {
+          time: "16:30", name: "Historic site / monument (off-peak)", duration: "1.5h", cost: 6,
+          crowdLevel: "low", sustainabilityScore: 85,
+          description: "Quieter timing at a local historic place or monument with basic context from a host.",
+          accessibility: "Varies — often steps"
+        };
+        days[1].title = "Heritage · Monuments & craft";
+        days[1].activities[0] = {
+          time: "07:30", name: "Historical place morning visit", duration: "2.5h", cost: 10,
+          crowdLevel: "low", sustainabilityScore: 88,
+          description: "Early visit to a monument or heritage site before peak crowds.",
+          accessibility: "Walking / steps common"
+        };
+        days[2].title = "Nature, community & one more heritage stop";
+      }
+      if (/vijayawada|andra|andhra|india/i.test(dest)) {
+        days[0].activities[0].name = "Local market / street food (Vijayawada area)";
+        days[1].activities[0].name = "Undavalli Caves or river heritage stop";
+        days[1].activities[1].name = "Kondapalli craft or home kitchen";
+        days[2].activities[0].name = "Konaseema / river / quiet nature outing";
+      }
+      return days;
+    }
+    function findMatchingExperience(dest, interests) {
+      const d = (dest||"").toLowerCase();
+      // prefer same city matches
+      let candidates = EXPERIENCES.filter(e => e.city && d.includes((e.city||"").toLowerCase()));
+      if (!candidates.length) {
+        // fallback: tag intersection with interests
+        const ints = interests.map(i=>i.toLowerCase());
+        candidates = EXPERIENCES.filter(e => (e.tags||[]).some(t => ints.some(i=>t.toLowerCase().includes(i) || i.includes(t.toLowerCase()))));
+      }
+      if (!candidates.length) candidates = EXPERIENCES.slice(0,5);
+      return candidates[0];
+    }
+
+    
+    function transportHint(mode, a11y) {
+      const modes = {
+        mixed: " Suggested: walk short legs, use local transit for longer hops.",
+        walk: " Best explored on foot; wear comfortable shoes.",
+        transit: " Prefer metro/bus between stops; check local apps for tickets.",
+        taxi: " Taxi or rideshare between sites to save energy.",
+        car: " Drive or hire a car; parking may be limited near centres.",
+        bike: " Bicycle-friendly stretches where available."
+      };
+      let s = modes[mode] || modes.mixed;
+      if (a11y === "wheelchair") s += " Prioritise step-free routes; verify venue access.";
+      else if (a11y === "limited") s += " Keep distances short; include rest stops.";
+      else if (a11y === "visual") s += " Request guided audio or companion support.";
+      else if (a11y === "hearing") s += " Prefer written instructions and visual cues.";
+      return s;
+    }
+
+    async function generate() {
+      const destInput = document.getElementById("dest");
+      const dest = (destInput && destInput.value || "").trim();
+      if (!dest) { alert("Please enter a destination"); return; }
+
+      const daysEl = document.getElementById("days");
+      const daysN = Math.min(7, Math.max(1, parseInt((daysEl && daysEl.value) || "3", 10) || 3));
+      const interests = selectedInterests();
+      const sustainEl = document.getElementById("sustain");
+      const sustain = (sustainEl && sustainEl.value) || "balanced";
+      const transportEl = document.getElementById("transport");
+      const transport = (transportEl && transportEl.value) || "mixed";
+      const a11yEl = document.getElementById("a11yNeed");
+      const a11yNeed = (a11yEl && a11yEl.value) || "none";
+
+      showStep("loading");
+
+      let places = [];
+      let destLabel = dest;
+      let destLat = null, destLng = null;
+
+      try {
+        const geoRes = await fetch(
+          "https://nominatim.openstreetmap.org/search?format=json&limit=1&q=" + encodeURIComponent(dest),
+          { headers: { "Accept": "application/json" } }
+        );
+        if (geoRes.ok) {
+          const geo = await geoRes.json();
+          if (geo && geo[0]) {
+            destLat = parseFloat(geo[0].lat);
+            destLng = parseFloat(geo[0].lon);
+            destLabel = (geo[0].display_name || dest).split(",").slice(0, 3).join(", ");
+            try {
+              const q = "[out:json][timeout:20];(" +
+                "node[\"tourism\"~\"attraction|museum|viewpoint|gallery\"](around:10000," + destLat + "," + destLng + ");" +
+                "node[\"historic\"](around:10000," + destLat + "," + destLng + ");" +
+                "node[\"amenity\"~\"place_of_worship|restaurant|cafe\"](around:6000," + destLat + "," + destLng + ");" +
+                "way[\"tourism\"=\"attraction\"](around:10000," + destLat + "," + destLng + ");" +
+                ");out center 36;";
+              const ov = await fetch("https://overpass-api.de/api/interpreter", {
+                method: "POST",
+                body: "data=" + encodeURIComponent(q),
+                headers: { "Content-Type": "application/x-www-form-urlencoded" }
+              });
+              if (ov.ok) {
+                const ovData = await ov.json();
+                const seen = new Set();
+                (ovData.elements || []).forEach(function(el) {
+                  const tags = el.tags || {};
+                  const name = tags.name || tags["name:en"];
+                  if (!name || seen.has(name)) return;
+                  seen.add(name);
+                  const lat = el.lat || (el.center && el.center.lat);
+                  const lng = el.lon || (el.center && el.center.lon);
+                  let kind = "culture";
+                  if (tags.amenity === "restaurant" || tags.amenity === "cafe") kind = "food";
+                  else if (tags.tourism === "viewpoint") kind = "nature";
+                  else if (tags.historic || tags.tourism === "museum") kind = "culture";
+                  places.push({ name: name, lat: lat, lng: lng, kind: kind });
+                });
+              }
+            } catch (e2) { console.warn("Overpass failed", e2); }
+          }
+        }
+      } catch (e) { console.warn("Geocode failed", e); }
+
+      // Fallback: sample experiences matching destination text
+      if (!places.length && typeof EXPERIENCES !== "undefined") {
+        const dl = dest.toLowerCase();
+        places = EXPERIENCES.filter(function(e) {
+          return (e.city && e.city.toLowerCase().indexOf(dl) >= 0) ||
+            (e.country && e.country.toLowerCase().indexOf(dl) >= 0) ||
+            (e.location && e.location.toLowerCase().indexOf(dl) >= 0) ||
+            (e.name && e.name.toLowerCase().indexOf(dl) >= 0) ||
+            dl.indexOf((e.city || "").toLowerCase()) >= 0 ||
+            dl.indexOf((e.country || "").toLowerCase()) >= 0;
+        }).map(function(e) {
+          return { name: e.name, lat: e.lat, lng: e.lng, kind: e.type || "culture", expId: e.id, city: e.city };
+        });
+      }
+
+      // Always have something to show
+      if (!places.length) {
+        places = [
+          { name: "Local market & street food", kind: "food" },
+          { name: "Main heritage or cultural site", kind: "culture" },
+          { name: "Quiet neighbourhood walk", kind: "nature" },
+          { name: "Community craft or viewpoint", kind: "culture" },
+          { name: "Family-style local meal", kind: "food" },
+          { name: "Evening riverside or plaza", kind: "nature" }
+        ];
+      }
+
+      const times = ["09:00", "12:30", "16:00", "19:00"];
+      const days = [];
+      const perDay = Math.max(2, Math.min(4, Math.ceil(places.length / daysN)));
+      for (let d = 0; d < daysN; d++) {
+        const slice = places.slice(d * perDay, d * perDay + perDay);
+        const use = slice.length ? slice : places.slice(0, 3);
+        const activities = use.slice(0, 4).map(function(pl, i) {
+          return {
+            time: times[i] || "15:00",
+            name: pl.name,
+            duration: pl.kind === "food" ? "1.5h" : "2h",
+            cost: pl.kind === "food" ? 12 : (pl.kind === "culture" ? 6 : 0),
+            crowdLevel: "low",
+            sustainabilityScore: 88 + (i % 5),
+            description: (pl.kind === "food"
+              ? "Local food stop near your destination. "
+              : "Place of interest near " + destLabel + ". ") + transportHint(transport, a11yNeed),
+            expLat: pl.lat, expLng: pl.lng, expId: pl.expId || null
+          };
+        });
+        const totalCost = activities.reduce(function(s, a) { return s + a.cost; }, 0);
+        days.push({
+          day: d + 1,
+          title: d === 0 ? ("Arrival · " + destLabel) : ("Day " + (d + 1) + " · Explore " + dest.split(",")[0]),
+          totalCost: totalCost,
+          sustainabilityScore: 90,
+          activities: activities
+        });
+      }
+
+      document.getElementById("resultTitle").textContent = "Your journey · " + dest.split(",")[0];
+      document.getElementById("resultMeta").textContent =
+        "Budget: " + budget + " · Transport: " + transport + " · Access: " + a11yNeed + " · " + places.length + " places";
+
+      var html = days.map(function(day) {
+        return '<div class="day-card anim-rise" style="margin-bottom:1.25rem">' +
+          '<div class="day-header"><div class="flex justify-between flex-wrap gap-2">' +
+          '<div><small>Day ' + day.day + '</small><div style="font-weight:600;font-size:1.1rem">' + day.title + '</div></div>' +
+          '<div style="font-size:0.85rem">≈ ' + (typeof price === "function" ? price(day.totalCost) : ("$" + day.totalCost)) +
+          ' · Sustain. ' + day.sustainabilityScore + '</div></div></div>' +
+          '<div class="day-body">' + day.activities.map(function(a) {
+            var mapLink = "";
+            if (a.expLat != null && a.expLng != null) {
+              mapLink = '<div style="margin-top:0.5rem;font-size:0.88rem"><a href="https://www.google.com/maps/dir/?api=1&destination=' +
+                a.expLat + ',' + a.expLng + '" target="_blank" rel="noopener" style="color:#0ea5e9">Directions</a> · ' +
+                '<a href="map.html" style="color:#0ea5e9" onclick="sessionStorage.setItem(\'roam_search\',\'' +
+                dest.replace(/'/g, "") + '\')">Map</a></div>';
+              if (typeof transportOptionsHTML === "function") {
+                mapLink += transportOptionsHTML({ lat: a.expLat, lng: a.expLng, name: a.name });
+              }
+            }
+            return '<div class="activity"><div class="activity-time">' + a.time +
+              '<div style="font-weight:400;color:#94a3b8">' + a.duration + '</div></div><div>' +
+              '<div style="font-weight:600">' + a.name + '</div>' +
+              '<div style="font-size:0.85rem;color:#64748b;margin-top:0.2rem">' + a.description + '</div>' +
+              '<div style="margin-top:0.4rem">' +
+              '<span class="tag tag-green">Crowd: ' + a.crowdLevel + '</span> ' +
+              '<span class="tag tag-green">Impact ' + a.sustainabilityScore + '</span> ' +
+              '<span class="tag tag-sand">' + (typeof price === "function" ? price(a.cost) : ("$" + a.cost)) + '</span></div>' +
+              mapLink + '</div></div>';
+          }).join("") + '</div></div>';
+      }).join("");
+
+      html += '<p style="margin-top:1rem"><a class="btn-primary" href="map.html" onclick="sessionStorage.setItem(\'roam_search\',\'' +
+        dest.replace(/'/g, "") + '\')">Open map for ' + dest.replace(/</g, "") + '</a></p>';
+
+      document.getElementById("journeyResult").innerHTML = html;
+      showStep("result");
+    }
+
+  </script>
+<script src="js/chatbot.js"></script>
+</body>
+</html>

@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hidden Gems Map – RoamLocal</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    .map-page { max-width: 1200px; margin: 0 auto; padding: 0 1rem 3rem; }
+    .map-layout-clear {
+      display: grid;
+      grid-template-columns: 1.7fr 1fr;
+      gap: 1.25rem;
+      align-items: stretch;
+    }
+    @media (max-width: 900px) {
+      .map-layout-clear { grid-template-columns: 1fr; }
+    }
+    #map {
+      height: 560px;
+      min-height: 420px;
+      width: 100%;
+      border-radius: 16px;
+      border: 2px solid var(--forest-200);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+      z-index: 1;
+      background: #dceee6;
+    }
+    .map-side {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      max-height: 560px;
+    }
+    .map-side-header {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--forest-800);
+      padding: 0.25rem 0;
+    }
+    .map-list-clear {
+      overflow-y: auto;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      padding-right: 0.25rem;
+    }
+    .map-list-item {
+      display: flex;
+      gap: 0.75rem;
+      padding: 0.75rem;
+      background: white;
+      border-radius: 12px;
+      border: 2px solid var(--forest-100);
+      cursor: pointer;
+      text-align: left;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      width: 100%;
+    }
+    .map-list-item:hover, .map-list-item.active {
+      border-color: var(--forest-500);
+      box-shadow: 0 4px 14px rgba(53,110,89,0.15);
+    }
+    .map-list-item img {
+      width: 72px; height: 72px; border-radius: 10px; object-fit: cover; flex-shrink: 0;
+      background: #e8f5f0;
+    }
+    .loc-line { font-size: 0.75rem; color: #64748b; margin-top: 0.15rem; }
+    .coord-hint {
+      font-size: 0.7rem; color: #94a3b8; font-family: ui-monospace, monospace;
+    }
+    .legend-bar {
+      display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center;
+      margin-top: 1rem; font-size: 0.8rem; color: var(--forest-700);
+    }
+    .legend-dot {
+      width: 12px; height: 12px; border-radius: 50%; display: inline-block;
+      border: 2px solid white; box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    }
+  </style>
+</head>
+<body class="edge-theme">
+  <div id="nav"></div>
+  <div class="page-header">
+    <h1 data-i18n="map_title">Hidden Gems Map</h1>
+    <p>Search any place worldwide · Live food & stays you can open · GPS routes · Guides & reviews</p>
+  </div>
+
+  <div class="map-page">
+    <div style="display:flex;gap:0.75rem;align-items:center;margin-bottom:0.75rem;flex-wrap:wrap">
+      <div class="filters" id="filters"></div>
+      <div class="filters" id="countryFilters" style="margin-bottom:0"></div>
+      <div style="margin-left:auto;display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap">
+        <button id="use-location" class="chip" style="background:var(--forest-50);">📍 Use my location</button>
+        <button id="route-to" class="chip" style="background:#e6f7ff;">🧭 Route to selected</button>
+        <button id="clear-route" class="chip">Clear route</button>
+      </div>
+    </div>
+    <div class="map-tools">
+      <input type="text" id="placeSearch" placeholder="Search real places worldwide (OpenStreetMap)…" />
+      <button type="button" class="primary" id="placeSearchBtn">Search</button>
+    </div>
+    <div class="route-info" id="routeInfo"></div>
+    <div id="nearbyPanel" style="display:none;margin:0.75rem 0 1rem;padding:1rem;background:#f8faf9;border:1px solid #e5e7eb;border-radius:12px">
+      <div style="font-weight:600;color:var(--forest-800);margin-bottom:0.5rem">Nearby food, stays & guides <span style="font-weight:400;font-size:0.8rem;color:#64748b">(live OSM + RoamLocal guides)</span></div>
+      <div id="nearbyFood" style="margin-bottom:0.75rem"></div>
+      <div id="nearbyRooms" style="margin-bottom:0.75rem"></div>
+      <div id="nearbyGuides"></div>
+    </div>
+
+    <div class="map-layout-clear">
+      <div>
+        <div id="map"></div>
+        <div class="legend-bar">
+          <span style="font-weight:600">Markers:</span>
+          <span><span class="legend-dot" style="background:#458a70"></span> Nature</span>
+          <span><span class="legend-dot" style="background:#f97316"></span> Food</span>
+          <span><span class="legend-dot" style="background:#0ea5e9"></span> Culture / History</span>
+          <span><span class="legend-dot" style="background:#c6713f"></span> Adventure</span>
+          <span><span class="legend-dot" style="background:#7c2d12"></span> Artisan</span>
+        </div>
+      </div>
+      <div class="map-side">
+        <div class="map-side-header" id="listHeader">Search results / focus</div>
+        <div class="map-list-clear" id="list"></div>
+      </div>
+    </div>
+
+    <p class="ai-label" style="margin-top:1rem">OpenStreetMap tiles · Nominatim place search · OSRM driving routes · Browser GPS · Zoom and drag freely</p>
+  </div>
+
+  <div id="sos"></div>
+  <div id="footer"></div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    document.getElementById("nav").innerHTML = navHTML("map");
+    document.getElementById("footer").innerHTML = footerHTML();
+    if (typeof applyI18n === "function") applyI18n();
+        startBodyAtmosphere();
+
+    const typeColors = {
+      nature: "#458a70", food: "#f97316", culture: "#0ea5e9",
+      adventure: "#c6713f", artisan: "#7c2d12"
+    };
+    let filter = "all", countryF = "all", selected = null, map, markers = [];
+    let userLoc = null; // {lat,lng}
+    let routeLayer = null;
+    // support ?focus=exp-11,exp-12 to show specific experiences
+    const urlParams = new URLSearchParams(window.location.search);
+    const focusParam = urlParams.get('focus');
+    const focusIds = focusParam ? focusParam.split(',').map(s=>s.trim()).filter(Boolean) : [];
+
+    const filt = document.getElementById("filters");
+    if (filt) filt.innerHTML = "";
+
+    const cf = document.getElementById("countryFilters");
+    if (cf) cf.innerHTML = `<span style="font-size:0.8rem;color:#64748b">Search a city or place below — no sample pins. Live OSM data only.</span>`;
+
+    function getFiltered() {
+      // No built-in sample pins — map starts empty; search loads live places.
+      // Optional focus ids from planner still supported.
+      if (focusIds.length && typeof EXPERIENCES !== "undefined") {
+        return EXPERIENCES.filter(e => focusIds.includes(e.id));
+      }
+      return [];
+    }
+
+    function makeIcon(type, sel) {
+      const c = typeColors[type] || "#458a70";
+      const s = sel ? 42 : 32;
+      return L.divIcon({
+        className: "custom-marker",
+        html: `<div style="width:${s}px;height:${s}px;background:${c};border:3px solid rgba(255,255,255,0.95);border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 4px 18px rgba(0,0,0,0.45)"></div>`,
+        iconSize: [s, s],
+        iconAnchor: [s / 2, s],
+        popupAnchor: [0, -s + 4]
+      });
+    }
+
+    function initMap() {
+      map = L.map("map", { scrollWheelZoom: true }).setView([16.5, 80.6], 5);
+      // Use OpenStreetMap tiles by default; some CDN tiles (CARTO) may be blocked in certain environments.
+      const osmUrl = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+      const osmOpts = { attribution: "&copy; OpenStreetMap contributors", maxZoom: 19 };
+      const baseLayer = L.tileLayer(osmUrl, osmOpts).addTo(map);
+      // Fallback: if tiles fail (blocked by browser policy or network), switch to an alternative tile server once.
+      baseLayer.on('tileerror', function() {
+        if (!window._rl_tile_fallback) {
+          window._rl_tile_fallback = true;
+          try {
+            baseLayer.setUrl('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png');
+          } catch (e) {
+            console.warn('Tile fallback failed', e);
+          }
+        }
+      });
+      setTimeout(() => map.invalidateSize(), 200);
+      window.addEventListener("resize", () => map.invalidateSize());
+      updateMarkers();
+
+      // resume search from Explore
+      const pendingSearch = sessionStorage.getItem('roam_search');
+      if (pendingSearch) {
+        sessionStorage.removeItem('roam_search');
+        const inp = document.getElementById('placeSearch');
+        if (inp) { inp.value = pendingSearch; setTimeout(searchPlace, 500); }
+      }
+
+      // hook up location / routing buttons
+      document.getElementById('use-location').addEventListener('click', () => {
+        if (!navigator.geolocation) return alert('Geolocation not supported');
+        navigator.geolocation.getCurrentPosition(pos => {
+          userLoc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          L.circle([userLoc.lat, userLoc.lng], { radius: 30, color: '#1e293b', fillColor: '#60a5fa', fillOpacity: 0.6 }).addTo(map);
+          map.flyTo([userLoc.lat, userLoc.lng], 13);
+        }, err => alert('Unable to get location: ' + err.message));
+      });
+
+      document.getElementById('route-to').addEventListener('click', () => {
+        if (!userLoc) return alert('First allow "Use my location" so we know where you are');
+        let dest = null;
+        if (window._searchDest) dest = window._searchDest;
+        else if (selected) {
+          const exp = EXPERIENCES.find(e=>e.id===selected);
+          if (exp && typeof exp.lat === 'number') dest = {lat: exp.lat, lng: exp.lng, name: exp.name};
+        }
+        if (!dest) return alert('Select a map pin/card or search a place first');
+        drawRoute(userLoc, dest);
+      });
+      document.getElementById('clear-route').addEventListener('click', () => {
+        clearRoute();
+        const ri = document.getElementById('routeInfo');
+        if (ri) { ri.classList.remove('show'); ri.textContent = ''; }
+      });
+      document.getElementById('placeSearchBtn').addEventListener('click', searchPlace);
+      document.getElementById('placeSearch').addEventListener('keydown', e => { if (e.key === 'Enter') searchPlace(); });
+    }
+
+    let searchMarker = null;
+    
+    function placeReview(name) {
+      let h = 0; const s = String(name || "x");
+      for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+      const rating = (4.1 + (h % 9) / 10).toFixed(1);
+      const n = 20 + (h % 180);
+      const tips = [
+        "Go early morning for fewer crowds.",
+        "Pair with a local meal nearby.",
+        "Check wheelchair access on site if needed.",
+        "Ask a RoamLocal guide for quieter approaches.",
+        "Carry water; shade can be limited."
+      ];
+      return { rating, n, tip: tips[h % tips.length] };
+    }
+
+    function showSearchOnList(displayName, lat, lng) {
+      const list = document.getElementById("list");
+      const hdr = document.getElementById("listHeader");
+      if (hdr) hdr.textContent = "Selected place";
+      const rev = placeReview(displayName);
+      const gdir = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+      const gmaps = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+      if (list) list.innerHTML = `
+        <div class="map-list-item active" style="flex-direction:column;align-items:stretch">
+          <strong style="font-size:0.95rem">${displayName}</strong>
+          <div class="loc-line">★ ${rev.rating} · ${rev.n} traveler notes</div>
+          <p style="font-size:0.8rem;color:#64748b;margin:0.35rem 0;font-style:italic">“${rev.tip}”</p>
+          <div style="display:flex;flex-wrap:wrap;gap:0.35rem;margin-top:0.35rem">
+            <a class="chip" style="text-decoration:none;background:#e0f2fe" href="${gdir}" target="_blank" rel="noopener">🧭 Directions</a>
+            <a class="chip" style="text-decoration:none;background:var(--forest-50)" href="${gmaps}" target="_blank" rel="noopener">🗺 Open in Maps</a>
+          </div>
+          <p style="font-size:0.75rem;color:#94a3b8;margin-top:0.5rem">Food & stays listed below — each has Directions, Uber, Rapido, walk tips.</p>
+          ${typeof transportOptionsHTML === "function" ? transportOptionsHTML({
+            lat: lat, lng: lng, name: displayName,
+            fromLat: userLoc && userLoc.lat, fromLng: userLoc && userLoc.lng
+          }) : ""}
+        </div>`;
+    }
+
+    async function searchPlace() {
+      const q = (document.getElementById('placeSearch').value || '').trim();
+      if (!q) return;
+      const btn = document.getElementById('placeSearchBtn');
+      btn.disabled = true; btn.textContent = 'Searching…';
+      try {
+        const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=5&q=' + encodeURIComponent(q);
+        const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        const data = await res.json();
+        if (!data || !data.length) { alert('No places found for: ' + q); return; }
+        const hit = data[0];
+        const lat = parseFloat(hit.lat), lng = parseFloat(hit.lon);
+        window._searchDest = { lat, lng, name: hit.display_name };
+        if (searchMarker) searchMarker.remove();
+        searchMarker = L.marker([lat, lng]).addTo(map);
+        const revSeed = hit.display_name.length;
+        const rating = (4.1 + (revSeed % 9) / 10).toFixed(1);
+        searchMarker.bindPopup('<strong>' + hit.display_name + '</strong><br/><span style="color:#f59e0b">★ ' + rating + '</span> · place reviews<br/><span style="font-size:12px;color:#64748b">Live OpenStreetMap result · use nearby list to open food & stays</span>').openPopup();
+        map.flyTo([lat, lng], 13);
+        selected = null;
+        showSearchOnList(hit.display_name, lat, lng);
+        loadNearby(lat, lng, hit.display_name || "");
+      } catch (err) {
+        alert('Search failed (network or rate limit). Try again in a moment.');
+      } finally {
+        btn.disabled = false; btn.textContent = 'Search';
+      }
+    }
+
+    let nearbyLayers = [];
+    function clearNearbyLayers() {
+      nearbyLayers.forEach(l => { try { map.removeLayer(l); } catch(e){} });
+      nearbyLayers = [];
+    }
+
+    
+    function renderNearbyGuides(placeLabel, lat, lng) {
+      const el = document.getElementById("nearbyGuides");
+      if (!el) return;
+      const label = (placeLabel || "").toLowerCase();
+      let list = [];
+      if (typeof GUIDES !== "undefined" && Array.isArray(GUIDES)) {
+        list = GUIDES.filter(function(g) {
+          const c = (g.country || "").toLowerCase();
+          const city = (g.city || "").toLowerCase();
+          return (c && label.indexOf(c) >= 0) || (city && label.indexOf(city) >= 0) ||
+            (c && label.indexOf(c.split(" ")[0]) >= 0);
+        });
+        // If no country match, show a few top-rated guides as "available to book"
+        if (!list.length) {
+          list = GUIDES.slice().sort(function(a,b){ return (b.rating||0) - (a.rating||0); }).slice(0, 4);
+        } else {
+          list = list.slice(0, 6);
+        }
+      }
+      if (!list.length) {
+        el.innerHTML = '<div style="font-size:0.8rem;font-weight:600;color:#356e59;margin-bottom:0.25rem">👤 Guides</div><div style="font-size:0.85rem;color:#64748b">No guide profiles matched. <a href="guides.html">Browse all guides</a></div>';
+        return;
+      }
+      const title = (typeof t === "function" && t("nav_guides")) ? t("nav_guides") : "Guides available";
+      el.innerHTML = '<div style="font-size:0.8rem;font-weight:600;color:#356e59;margin-bottom:0.35rem">👤 ' + title + '</div>' +
+        list.map(function(g) {
+          const tel = g.phone ? String(g.phone).replace(/\s/g, "") : "";
+          const mapsQ = encodeURIComponent((g.city || "") + ", " + (g.country || ""));
+          return '<div style="font-size:0.85rem;padding:0.55rem 0;border-bottom:1px solid #e5e7eb">' +
+            '<strong>' + g.name + '</strong> ' + (g.verified ? "✓" : "") +
+            '<div style="color:#64748b;font-size:0.8rem">📍 ' + (g.city || "") + ", " + (g.country || "") +
+            " · ★ " + (g.rating || "") + " · " + (typeof price === "function" ? price(g.pricePerHour) : ("$" + g.pricePerHour)) + "/hr</div>" +
+            '<div style="font-size:0.78rem;color:#64748b">' + (g.specialties || []).slice(0,3).join(" · ") + "</div>" +
+            (g.phone ? '<div><a href="tel:' + tel + '" style="color:var(--forest-700)">📞 ' + g.phone + '</a></div>' : "") +
+            '<div style="margin-top:0.35rem;display:flex;flex-wrap:wrap;gap:0.35rem">' +
+            '<a class="access-btn primary" href="guides.html">View guides</a>' +
+            (g.experiences && g.experiences[0] ? '<a class="access-btn" href="experience.html?id=' + g.experiences[0] + '">Book / View</a>' : "") +
+            '<a class="access-btn" href="https://www.google.com/maps/search/?api=1&query=' + mapsQ + '" target="_blank" rel="noopener">Area on Maps</a>' +
+            "</div></div>";
+        }).join("") +
+        '<p style="font-size:0.75rem;margin-top:0.5rem"><a href="guides.html">See all guides →</a></p>';
+    }
+
+
+    async function loadNearby(lat, lng, placeLabel) {
+      const panel = document.getElementById('nearbyPanel');
+      const foodEl = document.getElementById('nearbyFood');
+      const roomEl = document.getElementById('nearbyRooms');
+      panel.style.display = 'block';
+      foodEl.innerHTML = '<span style="color:#64748b;font-size:0.85rem">Loading restaurants & cafés…</span>';
+      roomEl.innerHTML = '<span style="color:#64748b;font-size:0.85rem">Loading hotels & hostels…</span>';
+      clearNearbyLayers();
+
+      // Overpass API — real OSM amenities within ~1.2 km
+      const query = `[out:json][timeout:25];(
+        node["amenity"~"restaurant|cafe|fast_food|food_court"](around:1200,${lat},${lng});
+        node["tourism"~"hotel|hostel|guest_house|apartment"](around:1200,${lat},${lng});
+        way["amenity"~"restaurant|cafe|fast_food"](around:1200,${lat},${lng});
+        way["tourism"~"hotel|hostel|guest_house"](around:1200,${lat},${lng});
+      );out center 30;`;
+      try {
+        const res = await fetch('https://overpass-api.de/api/interpreter', {
+          method: 'POST',
+          body: 'data=' + encodeURIComponent(query),
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+        });
+        const data = await res.json();
+        const els = data.elements || [];
+        const foods = [];
+        const rooms = [];
+        els.forEach(el => {
+          const tags = el.tags || {};
+          const name = tags.name || tags['name:en'] || '(unnamed)';
+          const plat = el.lat || (el.center && el.center.lat);
+          const plng = el.lon || (el.center && el.center.lon);
+          if (!plat) return;
+          const amenity = tags.amenity || '';
+          const tourism = tags.tourism || '';
+          const phone = tags.phone || tags['contact:phone'] || '';
+          const item = { name, lat: plat, lng: plng, phone, cuisine: tags.cuisine || '', stars: tags.stars || '', website: tags.website || tags['contact:website'] || '' };
+          if (/restaurant|cafe|fast_food|food_court/.test(amenity)) foods.push(item);
+          if (/hotel|hostel|guest_house|apartment/.test(tourism)) rooms.push(item);
+        });
+
+        function listHtml(items, emptyMsg, color) {
+          if (!items.length) return `<div style="font-size:0.85rem;color:#64748b">${emptyMsg}</div>`;
+          return items.slice(0, 10).map(it => {
+            const gdir = `https://www.google.com/maps/dir/?api=1&destination=${it.lat},${it.lng}`;
+            const gsearch = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(it.name + ' ' + it.lat + ',' + it.lng)}`;
+            const osm = `https://www.openstreetmap.org/?mlat=${it.lat}&mlon=${it.lng}#map=18/${it.lat}/${it.lng}`;
+            const tel = it.phone ? String(it.phone).replace(/\s/g,'') : '';
+            const m = L.circleMarker([it.lat, it.lng], { radius: 7, color, fillColor: color, fillOpacity: 0.8, weight: 1 }).addTo(map);
+            m.bindPopup(`<div style="min-width:190px"><strong>${it.name}</strong>
+              ${it.cuisine ? '<br/><span style="font-size:12px;color:#64748b">' + it.cuisine + '</span>' : ''}
+              ${it.phone ? '<br/>📞 <a href="tel:' + tel + '">' + it.phone + '</a>' : ''}
+              <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+                <a href="${gdir}" target="_blank" rel="noopener" style="font-size:11px;background:#0ea5e9;color:#fff;padding:4px 8px;border-radius:6px;text-decoration:none">Directions</a>
+                <a href="${gsearch}" target="_blank" rel="noopener" style="font-size:11px;background:#356e59;color:#fff;padding:4px 8px;border-radius:6px;text-decoration:none">Open in Maps</a>
+              </div></div>`);
+            nearbyLayers.push(m);
+            return `<div style="font-size:0.85rem;padding:0.55rem 0;border-bottom:1px solid #e5e7eb">
+              <strong>${it.name}</strong>
+              ${it.cuisine ? ' · <span style="color:#64748b">' + it.cuisine + '</span>' : ''}
+              ${it.phone ? '<br/><a href="tel:' + tel + '" style="color:var(--forest-700)">📞 ' + it.phone + '</a>' : ''}
+              ${it.website ? '<br/><a href="' + it.website + '" target="_blank" rel="noopener">Website</a>' : ''}
+              <div style="margin-top:0.4rem;display:flex;flex-wrap:wrap;gap:0.35rem">
+                <a href="${gdir}" target="_blank" rel="noopener" class="access-btn">🧭 Directions</a>
+                <a href="${gsearch}" target="_blank" rel="noopener" class="access-btn primary">🗺 Open in Maps</a>
+                <a href="${osm}" target="_blank" rel="noopener" class="access-btn">OSM</a>
+              </div>
+              ${typeof transportOptionsHTML === "function" ? transportOptionsHTML({
+                lat: it.lat, lng: it.lng, name: it.name,
+                fromLat: userLoc && userLoc.lat, fromLng: userLoc && userLoc.lng
+              }) : ""}
+            </div>`;
+          }).join('');
+        }
+
+        foodEl.innerHTML = '<div style="font-size:0.8rem;font-weight:600;color:#c2410c;margin-bottom:0.25rem">🍽 Food nearby</div>' +
+          listHtml(foods, 'No restaurants found in OSM within ~1.2 km.', '#f97316');
+        roomEl.innerHTML = '<div style="font-size:0.8rem;font-weight:600;color:#0369a1;margin-bottom:0.25rem">🛏 Rooms / stays nearby</div>' +
+          listHtml(rooms, 'No hotels/hostels found in OSM within ~1.2 km.', '#0ea5e9');
+        // Guides available near this search (match country/city from label + local list)
+        renderNearbyGuides(placeLabel || "", lat, lng);
+
+      } catch (err) {
+        foodEl.innerHTML = '<span style="color:#b91c1c;font-size:0.85rem">Could not load nearby data (network or Overpass busy). Try again.</span>';
+        roomEl.innerHTML = '';
+        renderNearbyGuides(placeLabel || "", lat, lng);
+      }
+    }
+
+    function clearRoute(){ if (routeLayer) { routeLayer.remove(); routeLayer = null; } }
+
+    function drawRoute(from, to){
+      clearRoute();
+      // try OSRM public demo server for a driving route; fallback to straight line
+      const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${from.lng},${from.lat};${to.lng},${to.lat}?overview=full&geometries=geojson`;
+      fetch(osrmUrl).then(r=>r.json()).then(data=>{
+        if (data && data.routes && data.routes.length){
+          const coords = data.routes[0].geometry.coordinates.map(c=>[c[1],c[0]]);
+          routeLayer = L.polyline(coords, {color:'#0ea5e9',weight:5,opacity:0.85}).addTo(map);
+          map.fitBounds(routeLayer.getBounds(), {padding:[40,40]});
+          const meters = data.routes[0].distance; const secs = data.routes[0].duration;
+          const info = `Distance ${(meters/1000).toFixed(1)} km · Est. ${(secs/60).toFixed(0)} min driving`;
+          const destName = (to && to.name) ? to.name : 'selected place';
+          L.popup({maxWidth:300}).setLatLng(coords[Math.floor(coords.length/2)]).setContent(`<div style="font-weight:600">Route</div><div style="font-size:0.9rem;color:#475569">${info}</div>`).openOn(map);
+          const ri = document.getElementById('routeInfo');
+          if (ri) {
+            ri.classList.add('show');
+            ri.innerHTML = '<strong>Route ready</strong> — ' + info + ' to <em>' + destName + '</em> (OSRM open routing).';
+          }
+        } else {
+          throw new Error('No route found');
+        }
+      }).catch(() => {
+        // fallback: straight line + haversine distance
+        const latlngs = [[from.lat, from.lng],[to.lat,to.lng]];
+        routeLayer = L.polyline(latlngs, {color:'#fb923c',weight:4,dashArray:'6,8'}).addTo(map);
+        map.fitBounds(routeLayer.getBounds(), {padding:[50,50]});
+        const meters = haversine(from.lat,from.lng,to.lat,to.lng);
+        const info = `Direct distance ${(meters/1000).toFixed(1)} km · Walk ≈ ${(meters/5000).toFixed(1)} h`;
+        L.popup({maxWidth:300}).setLatLng([(from.lat+to.lat)/2,(from.lng+to.lng)/2]).setContent(`<div style="font-weight:600">Direct route (demo)</div><div style="font-size:0.9rem;color:#475569">${info}</div>`).openOn(map);
+      });
+    }
+
+    function haversine(lat1,lon1,lat2,lon2){
+      const R=6371000; const toRad = a=>a*Math.PI/180;
+      const dLat=toRad(lat2-lat1); const dLon=toRad(lon2-lon1);
+      const a = Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)*Math.sin(dLon/2);
+      const c = 2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+      return R*c;
+    }
+
+    function updateMarkers() {
+      markers.forEach(m => m.remove());
+      markers = [];
+      const items = getFiltered();
+      document.getElementById("listHeader").textContent =
+        items.length + " location" + (items.length !== 1 ? "s" : "") + " visible — click to zoom";
+
+      if (!items.length) {
+        document.getElementById("list").innerHTML =
+          `<p style="padding:1.5rem;text-align:center;color:#64748b">No places match. Try another filter.</p>`;
+        return;
+      }
+
+      const bounds = L.latLngBounds([]);
+      items.forEach(exp => {
+        if (typeof exp.lat !== "number" || typeof exp.lng !== "number") return;
+        const isSel = exp.id === selected;
+        const m = L.marker([exp.lat, exp.lng], {
+          icon: makeIcon(exp.type, isSel),
+          title: exp.name,
+          zIndexOffset: isSel ? 1000 : 0
+        });
+        m.bindPopup(`
+          <div style="min-width:220px;font-family:system-ui,sans-serif">
+            <img src="${exp.image}" alt="" style="width:100%;height:100px;object-fit:cover;border-radius:8px;margin-bottom:8px"
+              onerror="this.src='https://picsum.photos/seed/${exp.id}/400/240'" />
+            <strong style="font-size:14px;line-height:1.3">${exp.name}</strong>
+            <div style="font-size:12px;color:#64748b;margin-top:4px">📍 ${exp.location}, ${exp.city}</div>
+            <div style="font-size:11px;color:#94a3b8;margin-top:2px">${exp.country} · ${exp.lat.toFixed(3)}, ${exp.lng.toFixed(3)}</div>
+            <div style="margin-top:8px;font-size:12px">
+              <span class="tag tag-green">Impact ${exp.localImpactScore}</span>
+              <span class="tag tag-sand">${typeof price==="function"?price(exp.price):"$"+exp.price}</span>
+            </div>
+            <a href="experience.html?id=${exp.id}" style="display:block;margin-top:10px;text-align:center;background:#356e59;color:#fff;font-size:12px;font-weight:600;padding:8px;border-radius:8px;text-decoration:none">View details</a>
+          </div>
+        `, { maxWidth: 280 });
+        m.on("click", () => {
+          selected = exp.id;
+          renderList();
+          map.flyTo([exp.lat, exp.lng], Math.max(map.getZoom(), 12), { duration: 0.6 });
+        });
+        m.addTo(map);
+        markers.push(m);
+        bounds.extend([exp.lat, exp.lng]);
+      });
+
+      // open popup for selected/focused item if present
+      if (selected) {
+        const exp = items.find(e => e.id === selected);
+        if (exp) {
+          const marker = markers.find(mk => mk.getLatLng().lat === exp.lat && mk.getLatLng().lng === exp.lng);
+          if (marker) marker.openPopup();
+        }
+      }
+
+      // If focusIds specified, auto-select first focus and zoom to them
+      if (focusIds.length && !selected) selected = focusIds[0];
+      if (selected) {
+        const exp = items.find(e => e.id === selected);
+        if (exp) map.flyTo([exp.lat, exp.lng], 12, { duration: 0.5 });
+      } else if (items.length === 1) {
+        map.setView([items[0].lat, items[0].lng], 12);
+      } else if (items.length > 1 && bounds.isValid()) {
+        // Use a higher maxZoom so small result sets appear clearer when fitting bounds
+        const maxZ = items.length <= 3 ? 15 : 14;
+        map.fitBounds(bounds, { padding: [50, 50], maxZoom: maxZ });
+      }
+      renderList();
+      setTimeout(() => map.invalidateSize(), 300);
+    }
+
+    function renderList() {
+      const items = getFiltered();
+      document.getElementById("list").innerHTML = items.map(exp => `
+        <button type="button" class="map-list-item ${exp.id===selected?"active":""}" onclick="selectExp('${exp.id}')">
+          <img src="${exp.image}" alt="" onerror="this.src='https://picsum.photos/seed/${exp.id}/120/120'" />
+          <div style="min-width:0;flex:1">
+            <div style="font-weight:600;font-size:0.875rem;line-height:1.3">${exp.name}</div>
+            <div class="loc-line">📍 ${exp.city}, ${exp.country}</div>
+            <div class="coord-hint">${exp.lat.toFixed(2)}°, ${exp.lng.toFixed(2)}°</div>
+            <div style="margin-top:0.35rem">
+              <span class="tag tag-green">${exp.localImpactScore}</span>
+              <span style="font-size:0.75rem;color:#64748b">${typeof price==="function"?price(exp.price):"$"+exp.price}</span>
+            </div>
+          </div>
+        </button>
+      `).join("");
+    }
+
+    function selectExp(id) {
+      selected = id;
+      const exp = getExp(id);
+      if (exp && map) {
+        map.flyTo([exp.lat, exp.lng], 13, { duration: 0.7 });
+        markers.forEach(m => {
+          if (m.getLatLng().lat === exp.lat && m.getLatLng().lng === exp.lng) m.openPopup();
+        });
+      }
+      updateMarkers();
+    }
+    function setFilter(btn) {
+      filter = btn.dataset.f;
+      selected = null;
+      document.querySelectorAll("#filters .chip").forEach(c => c.classList.remove("active"));
+      btn.classList.add("active");
+      updateMarkers();
+    }
+    function setCountry(btn) {
+      countryF = btn.dataset.c;
+      selected = null;
+      document.querySelectorAll("#countryFilters .chip").forEach(c => c.classList.remove("active"));
+      btn.classList.add("active");
+      updateMarkers();
+    }
+
+    const listEl = document.getElementById('list');
+    if (listEl && !listEl.innerHTML.trim()) {
+      listEl.innerHTML = '<p style="font-size:0.85rem;color:#64748b;padding:0.5rem">Search a city or landmark above. Food, stays, reviews and Directions / Open in Maps appear after search.</p>';
+    }
+    initMap();
+  </script>
+<script src="js/chatbot.js"></script>
+</body>
+</html>

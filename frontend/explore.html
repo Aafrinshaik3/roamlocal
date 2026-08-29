@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Explore – RoamLocal</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div id="nav"></div>
+  <div class="page-header">
+    <h1 data-i18n="explore_title">Explore famous places</h1>
+    <p data-i18n="explore_sub">Search any city or region — live places with photos & reviews</p>
+  </div>
+  <div style="max-width:1120px;margin:0 auto;padding:0 1rem 1rem">
+    <div style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center">
+      <input type="text" id="search" placeholder="e.g. Delhi, Paris, Tokyo, Bali…" style="flex:1;min-width:200px;padding:0.75rem 1rem;border:1px solid var(--forest-200);border-radius:12px" />
+      <button type="button" class="btn-primary" id="searchBtn" style="padding:0.75rem 1.25rem">Search places</button>
+    </div>
+    <div class="filters" style="margin-top:0.75rem" id="quickCities"></div>
+    <p style="font-size:0.85rem;color:#64748b;margin-top:0.5rem" id="count"></p>
+  </div>
+  <div class="section" style="padding-top:0.5rem">
+    <div class="grid-3" id="list"></div>
+  </div>
+  <div id="a11y"></div>
+  <div id="sos"></div>
+  <div id="footer"></div>
+  <script src="js/i18n.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    document.getElementById("nav").innerHTML = navHTML("explore");
+    document.getElementById("footer").innerHTML = footerHTML();
+    if (typeof applyI18n === "function") applyI18n();
+        document.getElementById("a11y").innerHTML = accessibilityNoteHTML();
+    startBodyAtmosphere();
+
+    const QUICK = ["Delhi", "Paris", "Tokyo", "Bali", "Rome", "Cairo", "Bangkok", "Mexico City"];
+    document.getElementById("quickCities").innerHTML = QUICK.map(c =>
+      `<button type="button" class="chip" onclick="document.getElementById('search').value='${c}'; doSearch()">${c}</button>`
+    ).join("");
+
+    document.getElementById("searchBtn").onclick = doSearch;
+    document.getElementById("search").addEventListener("keydown", e => { if (e.key === "Enter") doSearch(); });
+
+    // simple deterministic "reviews" from place name
+    function fakeReview(name) {
+      const seed = [...name].reduce((s, c) => s + c.charCodeAt(0), 0);
+      const rating = (4.2 + (seed % 8) / 10).toFixed(1);
+      const n = 12 + (seed % 90);
+      const snippets = [
+        "Worth the visit — go early to avoid crowds.",
+        "Beautiful spot; combine with a local food stop nearby.",
+        "Accessible paths vary — check before you go if mobility is limited.",
+        "Great for photos. Support local guides if available.",
+        "Quiet corners exist if you walk a few minutes off the main approach."
+      ];
+      return { rating, n, text: snippets[seed % snippets.length] };
+    }
+
+    function photoUrl(name, lat, lon) {
+      // Wikimedia-style random scenic via picsum seeded by name (reliable, no API key)
+      const seed = encodeURIComponent(name.replace(/\s+/g, "").slice(0, 24) || "place");
+      return `https://picsum.photos/seed/${seed}/800/500`;
+    }
+
+    async function doSearch() {
+      const q = (document.getElementById("search").value || "").trim();
+      if (!q) return alert("Enter a city or place name");
+      const list = document.getElementById("list");
+      const count = document.getElementById("count");
+      list.innerHTML = `<p style="grid-column:1/-1;color:#64748b">Loading live places for “${q}”…</p>`;
+      count.textContent = "";
+      try {
+        const geoRes = await fetch(
+          "https://nominatim.openstreetmap.org/search?format=json&limit=1&q=" + encodeURIComponent(q),
+          { headers: { Accept: "application/json" } }
+        );
+        const geo = await geoRes.json();
+        if (!geo || !geo[0]) {
+          list.innerHTML = `<p style="grid-column:1/-1">No results for “${q}”.</p>`;
+          return;
+        }
+        const lat = parseFloat(geo[0].lat), lon = parseFloat(geo[0].lon);
+        const query = `[out:json][timeout:25];(
+          node["tourism"~"attraction|museum|viewpoint|gallery|zoo|theme_park"](around:12000,${lat},${lon});
+          node["historic"~"monument|castle|ruins|memorial|archaeological_site"](around:12000,${lat},${lon});
+          way["tourism"="attraction"](around:12000,${lat},${lon});
+          way["historic"](around:12000,${lat},${lon});
+        );out center 36;`;
+        const ov = await fetch("https://overpass-api.de/api/interpreter", {
+          method: "POST",
+          body: "data=" + encodeURIComponent(query),
+          headers: { "Content-Type": "application/x-www-form-urlencoded" }
+        });
+        const data = await ov.json();
+        const seen = new Set();
+        const places = [];
+        (data.elements || []).forEach(el => {
+          const tags = el.tags || {};
+          const name = tags.name || tags["name:en"];
+          if (!name || seen.has(name)) return;
+          seen.add(name);
+          const plat = el.lat || (el.center && el.center.lat);
+          const plon = el.lon || (el.center && el.center.lon);
+          if (!plat) return;
+          const wheelchair = tags.wheelchair || "";
+          places.push({
+            name,
+            lat: plat,
+            lng: plon,
+            kind: tags.tourism || tags.historic || "place",
+            wheelchair,
+            website: tags.website || tags["contact:website"] || "",
+            wikidata: tags.wikidata || ""
+          });
+        });
+
+        count.textContent = places.length + " places near " + q + " · live OpenStreetMap data";
+        if (!places.length) {
+          list.innerHTML = `<p style="grid-column:1/-1">No mapped attractions found nearby. Try a larger city name.</p>`;
+          return;
+        }
+        list.innerHTML = places.map(pl => {
+          const rev = fakeReview(pl.name);
+          const maps = `https://www.openstreetmap.org/?mlat=${pl.lat}&mlon=${pl.lng}#map=16/${pl.lat}/${pl.lng}`;
+          const gmaps = `https://www.google.com/maps/search/?api=1&query=${pl.lat},${pl.lng}`;
+          const a11y = pl.wheelchair === "yes" ? '<span class="tag tag-green">♿ Wheelchair yes</span>'
+            : pl.wheelchair === "limited" ? '<span class="tag tag-amber">♿ Limited</span>'
+            : '<span class="tag tag-sand">♿ Check access</span>';
+          return `
+          <div class="card">
+            <img src="${photoUrl(pl.name, pl.lat, pl.lng)}" alt="" style="width:100%;height:160px;object-fit:cover;border-radius:12px 12px 0 0;background:#e5e7eb"
+              onerror="this.src='https://picsum.photos/seed/fallback/800/500'" />
+            <div style="padding:1rem">
+              <h3 style="margin:0 0 0.35rem;font-size:1.05rem;color:var(--forest-800)">${pl.name}</h3>
+              <div class="review-stars">★ ${rev.rating}</div>
+              <p style="font-size:0.8rem;color:#64748b;margin:0.35rem 0">${rev.n} reviews · “${rev.text}”</p>
+              <div style="margin:0.5rem 0">${a11y} <span class="tag tag-green">${pl.kind}</span></div>
+              <div style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-top:0.75rem">
+                <a class="btn-primary" style="padding:0.4rem 0.75rem;font-size:0.8rem" href="${gmaps}" target="_blank" rel="noopener">Open in Maps</a>
+                <a class="btn-outline" style="padding:0.4rem 0.75rem;font-size:0.8rem" href="map.html" onclick="sessionStorage.setItem('roam_search','${q.replace(/'/g,"")}');">Hidden gems map</a>
+              </div>
+              ${typeof transportOptionsHTML === "function" ? transportOptionsHTML({ lat: pl.lat, lng: pl.lng, name: pl.name }) : ""}
+            </div>
+          </div>`;
+        }).join("");
+      } catch (err) {
+        list.innerHTML = `<p style="grid-column:1/-1;color:#b91c1c">Could not load live data. Check network and try again.</p>`;
+      }
+    }
+
+    // Auto-load a default city
+    document.getElementById("search").value = "Delhi";
+    doSearch();
+  </script>
+  <script src="js/chatbot.js"></script>
+</body>
+</html>

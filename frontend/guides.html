@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Local Guides – RoamLocal</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div id="nav"></div>
+  <div class="page-header">
+    <h1 data-i18n="guides_title">Local Guides · Earn with RoamLocal</h1>
+    <p data-i18n="guides_sub">Verified hosts and guides by country — income stays in their communities</p>
+  </div>
+
+  <div class="section" style="padding-top:0">
+    <div class="earn-band">
+      <div>
+        <h3>Are you a local guide, host, or artisan?</h3>
+        <p>Register free. Get bookings from travelers who want authentic, low-crowd experiences. You set your price — we help you get discovered.</p>
+      </div>
+      <a href="guide-register.html" class="btn-sunset">Register & start earning →</a>
+    </div>
+
+    <div class="filters" id="countryFilters" style="margin-bottom:1.25rem"></div>
+    <p style="font-size:0.85rem;color:#64748b;margin-bottom:1rem" id="gcount"></p>
+    <div class="grid-3" id="guideList"></div>
+  </div>
+  <div id="sos"></div>
+  <div id="footer"></div>
+  <script src="js/i18n.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    document.getElementById("nav").innerHTML = navHTML("guides");
+    document.getElementById("footer").innerHTML = footerHTML();
+    if (typeof applyI18n === "function") applyI18n();
+        startBodyAtmosphere();
+
+    let country = "all";
+    const countries = ["all", ...new Set(GUIDES.map(g => g.country))];
+    document.getElementById("countryFilters").innerHTML = countries.map(c =>
+      `<button class="chip ${c==="all"?"active":""}" data-c="${c}" onclick="setCountry(this)">${c === "all" ? "All countries" : c}</button>`
+    ).join("");
+
+    function setCountry(btn) {
+      country = btn.dataset.c;
+      document.querySelectorAll("#countryFilters .chip").forEach(x => x.classList.remove("active"));
+      btn.classList.add("active");
+      render();
+    }
+    function render() {
+      const list = guidesByCountry(country);
+      document.getElementById("gcount").textContent = list.length + " guides · Verified profiles · Sample data";
+      document.getElementById("guideList").innerHTML = list.map(renderGuideCard).join("");
+    }
+    render();
+  </script>
+<script src="js/chatbot.js"></script>
+</body>
+</html>

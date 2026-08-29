@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sign in – RoamLocal</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body class="edge-theme">
+  <div id="nav"></div>
+  <div class="login-wrap">
+    <div class="login-card" id="card">
+      <div class="logo-icon" style="margin:0 auto 1rem;width:48px;height:48px;font-size:1.4rem">🌿</div>
+      <h1 style="font-size:1.5rem" id="title" data-i18n="sign_in">Sign in</h1>
+      <p style="font-size:0.85rem;color:#64748b;margin:0.5rem 0 1.25rem">Choose how you use RoamLocal</p>
+
+      <div class="role-pick" id="rolePick">
+        <div class="role-card active" data-role="traveler" onclick="pickRole(this)">
+          <strong>🧳 Traveler</strong>
+          <span>Explore places, guides, journeys</span>
+        </div>
+        <div class="role-card" data-role="guide" onclick="pickRole(this)">
+          <strong>🗺️ Guide / Host</strong>
+          <span>Earn · manage bookings</span>
+        </div>
+      </div>
+
+      <form id="form" onsubmit="return submitForm(event)">
+        <div id="nameField" class="form-group hidden" style="text-align:left">
+          <label>Name</label>
+          <input type="text" placeholder="Your name" id="lname" />
+        </div>
+        <div class="form-group" style="text-align:left">
+          <label>Email</label>
+          <input type="email" required placeholder="you@example.com" id="lemail" />
+        </div>
+        <div class="form-group" style="text-align:left">
+          <label>Password</label>
+          <input type="password" required placeholder="••••••••" id="lpass" />
+        </div>
+        <button type="submit" class="btn-primary" style="width:100%;justify-content:center;padding:0.85rem" id="submitBtn">Sign in</button>
+      </form>
+      <p style="margin-top:1.5rem;font-size:0.875rem;color:#64748b" id="toggleLine">
+        New here? <a href="#" onclick="toggleMode();return false" style="font-weight:600;color:var(--forest-800)">Create an account</a>
+      </p>
+      <p style="margin-top:0.75rem;font-size:0.75rem;color:#94a3b8">Demo traveler: demo@roamlocal.com / demo123</p>
+    </div>
+  </div>
+  <div id="sos"></div>
+  <div id="footer"></div>
+  <script src="js/i18n.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    document.getElementById("nav").innerHTML = navHTML("");
+    document.getElementById("footer").innerHTML = footerHTML();
+    if (typeof applyI18n === "function") applyI18n();
+        startBodyAtmosphere();
+    let mode = "login";
+    let selectedRole = "traveler";
+
+    function pickRole(el) {
+      document.querySelectorAll(".role-card").forEach(c => c.classList.remove("active"));
+      el.classList.add("active");
+      selectedRole = el.dataset.role;
+    }
+
+    function toggleMode() {
+      mode = mode === "login" ? "register" : "login";
+      document.getElementById("title").textContent = mode === "login" ? "Sign in" : "Create account";
+      document.getElementById("submitBtn").textContent = mode === "login" ? "Sign in" : "Create account";
+      document.getElementById("nameField").classList.toggle("hidden", mode === "login");
+      document.getElementById("toggleLine").innerHTML = mode === "login"
+        ? 'New here? <a href="#" onclick="toggleMode();return false" style="font-weight:600;color:var(--forest-800)">Create an account</a>'
+        : 'Already have an account? <a href="#" onclick="toggleMode();return false" style="font-weight:600;color:var(--forest-800)">Sign in</a>';
+    }
+
+    async function submitForm(e) {
+      e.preventDefault();
+      const email = document.getElementById("lemail").value;
+      const password = document.getElementById("lpass").value;
+      const name = (document.getElementById("lname") && document.getElementById("lname").value) || "Traveler";
+      const url = mode === "login" ? "/api/login" : "/api/register";
+      const body = mode === "login"
+        ? { email, password }
+        : { email, password, name, lang: (typeof getLang==="function"?getLang():"en"), role: selectedRole };
+      try {
+        const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed");
+        let user = data.user || { email, name, role: selectedRole };
+        // Prefer role chosen on this screen for demo
+        if (mode === "register" || selectedRole === "guide") user.role = selectedRole;
+        if (mode === "login" && selectedRole === "guide") user.role = "guide";
+        localStorage.setItem("roam_user", JSON.stringify(user));
+        const isGuide = (user.role === "guide");
+        document.getElementById("card").innerHTML = `
+          <div style="font-size:2.5rem;margin-bottom:1rem">✅</div>
+          <h1 style="font-size:1.5rem">Welcome, ${user.name || name}!</h1>
+          <p style="margin:0.75rem 0 1.5rem;font-size:0.9rem;color:#64748b">Signed in as <strong>${isGuide ? "Guide" : "Traveler"}</strong>.</p>
+          <a href="${isGuide ? "guide-dashboard.html" : "explore.html"}" class="btn-primary" style="padding:0.85rem 1.5rem">
+            ${isGuide ? "Open guide dashboard →" : "Explore places →"}
+          </a>
+        `;
+        if (document.getElementById("nav")) document.getElementById("nav").innerHTML = navHTML("");
+      } catch (err) {
+        alert(err.message);
+      }
+      return false;
+    }
+  </script>
+  <script src="js/chatbot.js"></script>
+</body>
+</html>

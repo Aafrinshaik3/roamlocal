@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>My Profile – RoamLocal</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div id="nav"></div>
+  <div class="page-header text-center">
+    <h1 data-i18n="profile">My Profile</h1>
+    <p>Your account and travel preferences</p>
+  </div>
+  <div style="max-width:520px;margin:0 auto;padding:0 1rem 3rem">
+    <div class="form-card" id="profileCard">
+      <p style="color:#64748b">Loading…</p>
+    </div>
+  </div>
+  <div id="sos"></div>
+  <div id="footer"></div>
+  <script src="js/i18n.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    document.getElementById("nav").innerHTML = navHTML("");
+    document.getElementById("footer").innerHTML = footerHTML();
+    if (typeof applyI18n === "function") applyI18n();
+        startBodyAtmosphere();
+
+    const user = getLoggedInUser();
+    const card = document.getElementById("profileCard");
+    if (!user) {
+      card.innerHTML = `
+        <p>You are not signed in.</p>
+        <a href="login.html" class="btn-primary" style="margin-top:1rem;display:inline-flex">Sign in</a>`;
+    } else {
+      const initial = (user.name || user.email || "U").charAt(0).toUpperCase();
+      const currentLang = (typeof getLang === "function" ? getLang() : null) || user.preferred_lang || "en";
+      const langOptions = (typeof LANGS !== "undefined" ? LANGS : [])
+        .map(l => `<option value="${l.code}" ${l.code === currentLang ? "selected" : ""}>${l.flag} ${l.name}</option>`)
+        .join("");
+
+      card.innerHTML = `
+        <div style="text-align:center;margin-bottom:1.5rem">
+          <div class="profile-avatar" style="width:72px;height:72px;font-size:1.75rem;margin:0 auto">${initial}</div>
+          <h2 style="margin:0.75rem 0 0.25rem;color:var(--forest-800)">${user.name || "Traveler"}</h2>
+          <p style="color:#64748b;font-size:0.9rem">${user.email || ""}</p>
+          <span style="display:inline-block;margin-top:0.5rem;font-size:0.75rem;background:var(--forest-50);color:var(--forest-700);padding:0.25rem 0.6rem;border-radius:999px">${user.role || "traveler"}</span>
+        </div>
+        <div style="display:grid;gap:1rem;font-size:0.9rem">
+          <div>
+            <label style="display:block;color:#64748b;margin-bottom:0.4rem;font-size:0.8rem">Preferred language</label>
+            <p style="font-size:0.75rem;color:#94a3b8;margin-bottom:0.5rem">Applies to the whole site (same as the top language bar).</p>
+            <select id="prefLang" style="width:100%;padding:0.55rem 0.75rem;border-radius:10px;border:1px solid #d1d5db;font-size:0.9rem">
+              ${langOptions}
+            </select>
+          </div>
+        </div>
+        <div style="margin-top:1.5rem;display:flex;flex-wrap:wrap;gap:0.5rem">
+          <button type="button" class="btn-primary" style="padding:0.65rem 1rem" id="savePref">Save language</button>
+          <a href="map.html" class="btn-outline" style="padding:0.65rem 1rem">Open map & routes</a>
+          <a href="dashboard.html" class="btn-outline" style="padding:0.65rem 1rem">Impact dashboard</a>
+          <button type="button" class="btn-outline" style="padding:0.65rem 1rem;color:#b91c1c;border-color:#fecaca" onclick="logoutUser()">Sign out</button>
+        </div>
+        <p id="prefMsg" style="margin-top:0.75rem;font-size:0.85rem;color:#065f46;display:none">Saved. Applying language across the site…</p>`;
+
+      document.getElementById("savePref").addEventListener("click", () => {
+        const code = document.getElementById("prefLang").value;
+        user.preferred_lang = code;
+        localStorage.setItem("roam_user", JSON.stringify(user));
+        if (typeof setLang === "function") setLang(code);
+        // same path as header language switcher
+        if (typeof onLangChange === "function") {
+          onLangChange(code);
+          return;
+        }
+        document.getElementById("prefMsg").style.display = "block";
+        setTimeout(() => location.reload(), 400);
+      });
+    }
+  </script>
+  <script src="js/chatbot.js"></script>
+</body>
+</html>

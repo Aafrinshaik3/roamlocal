@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Impact Dashboard – RoamLocal</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div id="nav"></div>
+  <div class="page-header">
+    <h1>Sustainability & Impact Dashboard</h1>
+    <p>Your contribution and crowd insights (sample data)</p>
+  </div>
+  <div class="section" style="padding-top:0.5rem">
+    <div class="dash-grid">
+      <div class="dash-stat"><div class="icon">🌿</div><div><div class="val">240</div><div class="lbl">Impact points</div></div></div>
+      <div class="dash-stat"><div class="icon">👥</div><div><div class="val">7</div><div class="lbl">Local businesses</div></div></div>
+      <div class="dash-stat"><div class="icon">📉</div><div><div class="val">18 kg</div><div class="lbl">Est. CO₂ avoided</div></div></div>
+      <div class="dash-stat"><div class="icon">🏆</div><div><div class="val">Level 2</div><div class="lbl">Responsible Traveler</div></div></div>
+    </div>
+    <div class="two-col">
+      <div class="panel">
+        <h2 style="font-size:1.1rem;margin-bottom:0.25rem">Live Crowd Snapshot</h2>
+        <p style="font-size:0.75rem;color:#92400e;margin-bottom:1rem">Estimated sample data · Not real-time</p>
+        <div id="crowds"></div>
+      </div>
+      <div>
+        <div class="panel" style="margin-bottom:1rem">
+          <h2 style="font-size:1.1rem;margin-bottom:1rem">Your badges</h2>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem" id="badges"></div>
+        </div>
+        <div class="panel">
+          <h2 style="font-size:1.1rem;margin-bottom:0.75rem">Travel tips</h2>
+          <ul style="font-size:0.875rem;color:var(--forest-700);list-style:none">
+            <li style="margin-bottom:0.5rem">🚌 Prefer public transport or shared rides</li>
+            <li style="margin-bottom:0.5rem">🚶 Many gems are best reached on foot</li>
+            <li>🏠 Homestays keep more money local</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+      <div class="panel" style="margin-top:1rem">
+        <h2 style="font-size:1.1rem;margin-bottom:0.5rem">Recommended transport</h2>
+        <div id="transport-panel" style="font-size:0.95rem;color:var(--forest-700)"></div>
+        <div id="voice-controls" style="margin-top:0.75rem;border-top:1px dashed var(--forest-50);padding-top:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center">
+          <label style="font-size:0.85rem;color:#334155">Language:</label>
+          <select id="voice-lang" style="min-width:160px">
+            <option value="en">English</option>
+            <option value="hi-IN">हिन्दी (Hindi)</option>
+            <option value="te-IN">తెలుగు (Telugu)</option>
+            <option value="es">Español (Spanish)</option>
+            <option value="fr">Français (French)</option>
+            <option value="ar">العربية (Arabic)</option>
+            <option value="zh">中文 (Chinese)</option>
+            <option value="ja">日本語 (Japanese)</option>
+            <option value="id">Bahasa (Indonesian)</option>
+            <option value="pt">Português (Portuguese)</option>
+            <option value="de">Deutsch (German)</option>
+          </select>
+          <label style="font-size:0.85rem;color:#334155">Voice:</label>
+          <select id="voice-select" style="min-width:220px"></select>
+          <label style="font-size:0.85rem;color:#334155">Rate</label>
+          <input id="voice-rate" type="range" min="0.5" max="2" step="0.1" value="1" style="width:100px">
+          <label style="font-size:0.85rem;color:#334155">Pitch</label>
+          <input id="voice-pitch" type="range" min="0" max="2" step="0.1" value="1" style="width:80px">
+          <button id="voice-speak" style="background:var(--forest-600);color:white;border:none;padding:0.5rem 0.75rem;border-radius:8px">🔊 Speak</button>
+          <button id="voice-stop" style="background:#ef4444;color:white;border:none;padding:0.5rem 0.75rem;border-radius:8px">⏹ Stop</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="sos"></div>
+  <div id="footer"></div>
+  <script src="js/i18n.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    document.getElementById("nav").innerHTML = navHTML("dashboard");
+    document.getElementById("footer").innerHTML = footerHTML();
+    if (typeof applyI18n === "function") applyI18n();
+        startBodyAtmosphere();
+    document.title = t("dash_title") + " – RoamLocal";
+    const dh = document.querySelector(".page-header h1"); if (dh) dh.textContent = t("dash_title");
+    const dp = document.querySelector(".page-header p"); if (dp) dp.textContent = t("dash_sub");
+
+    document.getElementById("crowds").innerHTML = CROWD_DATA.map(c => `
+      <div style="margin-bottom:1rem;padding-bottom:0.75rem;border-bottom:1px solid var(--forest-50)">
+        <div class="flex justify-between" style="font-size:0.875rem;margin-bottom:0.25rem">
+          <strong>${c.location}</strong>
+          <span class="tag ${crowdClass(c.crowd)}">${c.crowd}% crowded</span>
+        </div>
+        <div class="crowd-bar"><span class="${c.crowd>=70?'crowd-high':c.crowd>=40?'crowd-med':'crowd-low'}" style="width:${c.crowd}%"></span></div>
+        <div style="font-size:0.75rem;color:#64748b;margin-top:0.3rem">Try instead: <strong style="color:var(--forest-700)">${c.alternative}</strong></div>
+      </div>
+    `).join("");
+    const badges = [
+      { name: "Local Supporter", desc: "Booked 3+ local businesses", ok: true },
+      { name: "Low-Crowd Explorer", desc: "Chose quiet alternatives 5×", ok: true },
+      { name: "Public Transit Rider", desc: "Used shared transport", ok: false },
+      { name: "Responsible Traveler", desc: "Level 2 · 240 points", ok: true }
+    ];
+    document.getElementById("badges").innerHTML = badges.map(b => `
+      <div style="padding:0.75rem;border-radius:12px;border:1px solid ${b.ok?'var(--forest-200)':'var(--sand-200)'};background:${b.ok?'var(--forest-50)':'var(--sand-50)'};opacity:${b.ok?1:0.6}">
+        <div style="font-size:1.1rem">🏆</div>
+        <div style="font-weight:600;font-size:0.85rem">${b.name}</div>
+        <div style="font-size:0.7rem;color:#64748b">${b.desc}</div>
+      </div>
+    `).join("");
+
+    // Transport: how to explore + ride apps
+    (function renderTransport(){
+      const panel = document.getElementById("transport-panel");
+      if (!panel) return;
+      const modes = [
+        { icon: "🚶", title: "Walk", tip: "Best under ~1 km between stops. Slow travel, high local impact." },
+        { icon: "🛺", title: "Auto / e-rickshaw", tip: "Ideal for 1–3 km city hops (common in India)." },
+        { icon: "🚗", title: "Car / taxi", tip: "Comfortable for longer day trips or groups." },
+        { icon: "🚌", title: "Transit", tip: "Metro/bus cuts cost and carbon on busy corridors." }
+      ];
+      let html = '<p style="font-size:0.85rem;color:#64748b;margin-bottom:0.75rem">When you open a place on the map or Explore, you get walk / auto / car tips plus direct links to <strong>Uber</strong> and <strong>Rapido</strong>.</p>';
+      html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:0.65rem;margin-bottom:1rem">';
+      modes.forEach(m => {
+        html += '<div style="background:var(--forest-50);padding:0.75rem;border-radius:12px"><div style="font-size:1.25rem">' + m.icon + '</div><div style="font-weight:600;margin:0.25rem 0">' + m.title + '</div><div style="font-size:0.8rem;color:#64748b">' + m.tip + '</div></div>';
+      });
+      html += '</div>';
+      html += '<div style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-bottom:1rem">';
+      html += '<a class="tbtn uber" href="https://m.uber.com/ul/" target="_blank" rel="noopener">Open Uber</a>';
+      html += '<a class="tbtn rapido" href="https://rapido.bike/" target="_blank" rel="noopener">Open Rapido</a>';
+      html += '<a class="tbtn" href="map.html">Plan route on map</a>';
+      html += '<a class="tbtn" href="planner.html">Build ur journey</a>';
+      html += '</div>';
+      // sample places with transport boxes
+      if (typeof EXPERIENCES !== "undefined") {
+        html += '<div style="font-weight:600;margin-bottom:0.5rem;font-size:0.9rem">Sample places — pick a ride style</div>';
+        EXPERIENCES.slice(0, 6).forEach(e => {
+          html += '<div style="border:1px solid #e5e7eb;border-radius:12px;padding:0.75rem;margin-bottom:0.5rem">';
+          html += '<div style="font-weight:600">' + e.name + '</div>';
+          html += '<div style="font-size:0.8rem;color:#64748b;margin-bottom:0.35rem">' + (e.city || "") + ", " + (e.country || "") + '</div>';
+          if (typeof transportOptionsHTML === "function") {
+            html += transportOptionsHTML({ lat: e.lat, lng: e.lng, name: e.name });
+          }
+          html += '</div>';
+        });
+      }
+      panel.innerHTML = html;
+    })();
+
+    // Multilingual voice assistant using Web Speech API
+    (function voiceAssistant(){
+      const langSel = document.getElementById('voice-lang');
+      const sel = document.getElementById('voice-select');
+      const rateEl = document.getElementById('voice-rate');
+      const pitchEl = document.getElementById('voice-pitch');
+      const speakBtn = document.getElementById('voice-speak');
+      const stopBtn = document.getElementById('voice-stop');
+      let voices = [];
+      function populateVoices(){
+        voices = speechSynthesis.getVoices().sort((a,b)=> a.name.localeCompare(b.name));
+        sel.innerHTML = voices.map((v,i)=>`<option value="${i}" data-lang="${v.lang}">${v.name} — ${v.lang}</option>`).join('');
+        // try to preselect a voice that matches the selected language
+        const preferred = langSel.value || 'en';
+        const matchIndex = voices.findIndex(v => (v.lang || '').toLowerCase().startsWith(preferred.toLowerCase()));
+        if (matchIndex >= 0) sel.value = matchIndex;
+      }
+      if ('speechSynthesis' in window){
+        populateVoices();
+        window.speechSynthesis.onvoiceschanged = populateVoices;
+      } else {
+        sel.innerHTML = '<option>No speech support</option>';
+        speakBtn.disabled = true;
+      }
+
+      function buildSpeakText(){
+        // Speak top transport modes and first three experiences
+        const topNodes = Array.from(document.querySelectorAll('#transport-panel > div:first-child div')).slice(0,3);
+        const topModes = topNodes.length ? topNodes.map(n=>n.textContent.trim()).join(', ') : '';
+        const exps = EXPERIENCES.slice(0,3).map(e=>`${e.name} in ${e.city}, recommended: ${e.bestTransport||'no suggestion'}`).join('. ');
+        const intro = `Here are recommended transport options: ${topModes}. `;
+        return intro + exps;
+      }
+
+      function speakNow(){
+        if (!('speechSynthesis' in window)) return;
+        speechSynthesis.cancel();
+        // prefer language selection if a matching voice exists
+        const preferredLang = (langSel && langSel.value) || '';
+        let voice = null;
+        if (preferredLang && voices.length) {
+          voice = voices.find(v => (v.lang||'').toLowerCase().startsWith(preferredLang.toLowerCase()));
+        }
+        if (!voice) {
+          const idx = parseInt(sel.value||0,10);
+          voice = voices[idx];
+        }
+        const text = buildSpeakText();
+        const ut = new SpeechSynthesisUtterance(text);
+        ut.rate = parseFloat(rateEl.value || 1);
+        ut.pitch = parseFloat(pitchEl.value || 1);
+        if (voice) { ut.voice = voice; ut.lang = voice.lang; }
+        speechSynthesis.speak(ut);
+      }
+
+      speakBtn.addEventListener('click', speakNow);
+      stopBtn.addEventListener('click', ()=>{ if ('speechSynthesis' in window) speechSynthesis.cancel(); });
+    })();
+  </script>
+<script src="js/chatbot.js"></script>
+</body>
+</html>
